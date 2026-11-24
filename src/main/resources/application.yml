@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: stock-exchange
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 스키마는 Flyway로만 변경하고, 엔티티와 어긋나면 기동에 실패한다.
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
+      include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
