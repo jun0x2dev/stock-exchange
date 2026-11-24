@@ -3,7 +3,7 @@
 주문을 받아 자체 매칭 엔진으로 체결하고, 복식부기 원장에 기록하는 미니 증권사 + 거래소입니다.
 돈과 주식이 **유실되거나 중복되지 않게** 처리하고, 그것을 테스트와 대사로 **증명하는 것**이 목표입니다.
 
-> **현재 상태: 설계를 마치고 1단계 구현을 준비하고 있습니다.** 아래 내용은 설계이며, 구현 현황은 [진행 단계](#진행-단계)에 표시합니다.
+> **현재 상태: 설계를 마치고 1단계를 구현하고 있습니다.** 아래 내용은 설계이며, 구현 현황은 [진행 단계](#진행-단계)에 표시합니다.
 
 ## 풀려는 문제
 
@@ -143,6 +143,16 @@ flowchart LR
 | Test | JUnit 5, Testcontainers, k6 |
 | Security | gitleaks, Semgrep, Trivy, OWASP ZAP (3단계) |
 | Infra | Docker Compose, GitHub Actions, Prometheus·Grafana (3단계) |
+
+## 로컬 실행
+
+JDK 21과 Docker가 필요합니다.
+
+```bash
+cp .env.example .env   # POSTGRES_PASSWORD 값을 채운다
+./gradlew bootRun      # PostgreSQL 컨테이너를 함께 띄운다 (localhost:5433)
+./gradlew build        # 테스트 (Testcontainers)
+```
 
 ## 범위와 주의 사항
 

@@ -1,0 +1,24 @@
+# 로컬 개발용 인프라. bootRun을 실행하면 Spring Boot가 자동으로 띄우고 접속 정보도 주입한다.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: exchange
+      POSTGRES_USER: exchange
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?.env 파일에 POSTGRES_PASSWORD를 설정하세요}
+    ports:
+      # 로컬에 설치된 PostgreSQL(5432)과 겹치지 않도록 5433을 쓰고, 외부에는 열지 않는다.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # 최초 초기화 때 뜨는 임시 서버(유닉스 소켓 전용)를 준비 완료로 보지 않도록 TCP로 확인한다.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U exchange -d exchange"]
+      # 느린 디스크에서는 최초 초기화가 1분 이상 걸릴 수 있다.
+      start_period: 180s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
