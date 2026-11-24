@@ -4,6 +4,14 @@ spring:
   config:
     # 로컬 개발 값. git에 올리지 않는다.
     import: optional:file:.env[.properties]
+  jackson:
+    deserialization:
+      # 1.5주를 1주로 잘라 접수하지 않는다.
+      accept-float-as-int: false
+    datatype:
+      enum:
+        # side: 1 같은 숫자를 순서로 해석해 매수·매도를 바꿔 접수하지 않는다.
+        fail-on-numbers-for-enums: true
   jpa:
     open-in-view: false
     hibernate:

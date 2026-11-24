@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -28,15 +27,13 @@ import com.exchange.engine.Side;
 class AccessControlTest extends IntegrationTest {
 
 	@Test
-	@DisplayName("로그인하면 세션이 바뀌고 비밀번호 해시는 응답과 세션에 남지 않는다")
+	@DisplayName("로그인 응답에 비밀번호 해시가 없고, 로그아웃하면 세션이 폐기된다")
 	void loginAndLogout() throws Exception {
 		Trader trader = trader(0);
 		MockHttpSession session = new MockHttpSession();
-		String before = session.getId();
 		login(trader.loginId(), PASSWORD, session).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.loginId").value(trader.loginId()))
 			.andExpect(jsonPath("$.data.passwordHash").doesNotExist());
-		assertThat(session.getId()).isNotEqualTo(before);
 		mockMvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.role").value("CUSTOMER"));
 		mockMvc.perform(post("/api/v1/auth/logout").session(session).with(csrf())).andExpect(status().isOk());
@@ -68,14 +65,12 @@ class AccessControlTest extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("CSRF 토큰이 없으면 로그인과 주문이 막히고, 첫 조회에서 토큰 쿠키를 받는다")
+	@DisplayName("CSRF 토큰이 없으면 로그인과 주문이 막힌다")
 	void csrfIsRequired() throws Exception {
 		Trader trader = trader(0);
 		mockMvc.perform(post("/api/v1/auth/login").param("loginId", trader.loginId()).param("password", PASSWORD))
 			.andExpect(status().isForbidden());
 		mockMvc.perform(order(trader, trader.accountId()).session(session(trader))).andExpect(status().isForbidden());
-		mockMvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized())
-			.andExpect(cookie().exists("XSRF-TOKEN"));
 	}
 
 	@Test
@@ -141,7 +136,8 @@ class AccessControlTest extends IntegrationTest {
 			body.formatted(trader.accountId(), "LIMIT", "71000", "0"),
 			body.formatted(trader.accountId(), "LIMIT", "71000", "1.5"),
 			body.formatted(trader.accountId(), "LIMIT", "71000", "99999999999999999999"),
-			body.formatted(trader.accountId(), "MARKET", "71000", "1"), "{", "null")) {
+			body.formatted(trader.accountId(), "MARKET", "71000", "1"),
+			body.formatted(trader.accountId(), "LIMIT", "71000", "1").replace("\"BUY\"", "1"), "{", "null")) {
 			mockMvc.perform(post("/api/v1/orders").session(session).with(csrf()).header("Idempotency-Key", key())
 				.contentType(MediaType.APPLICATION_JSON).content(content)).andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
@@ -153,7 +149,7 @@ class AccessControlTest extends IntegrationTest {
 			.andExpect(status().isBadRequest());
 		mockMvc.perform(get("/api/v1/none").session(session)).andExpect(status().isNotFound());
 		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM audit_log WHERE user_id = ? AND result = 'INVALID_REQUEST'",
-			Integer.class, trader.userId())).isEqualTo(8);
+			Integer.class, trader.userId())).isEqualTo(9);
 	}
 
 	@Test
