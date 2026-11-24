@@ -259,9 +259,14 @@ class TradingTest extends IntegrationTest {
 		Trader buyer = trader(1_000_000);
 		jdbc.execute("CREATE TRIGGER fail_" + symbol + " BEFORE INSERT ON execution FOR EACH ROW WHEN (NEW.symbol = '"
 			+ symbol + "') EXECUTE FUNCTION reject_modification()");
-		place(seller, symbol, Side.SELL, 71_000, 5);
+		// 체결되지 않는 주문까지 한 묶음으로 처리되게 엔진을 멈춘 동안 주문한다.
+		stopEngine(symbol);
+		OrderResponse sell = place(seller, symbol, Side.SELL, 71_000, 5);
 		OrderResponse buy = place(buyer, symbol, Side.BUY, 71_000, 5);
+		matchingService.reload(symbol);
 		await(() -> "HALTED".equals(status(symbol)));
+		// 묶음이 실패해도 앞선 명령은 하나씩 다시 처리된다.
+		assertThat(orderService.get(seller.userId(), sell.orderId()).status()).isEqualTo(OrderStatus.OPEN);
 		assertThat(orderService.get(buyer.userId(), buy.orderId()).status()).isEqualTo(OrderStatus.ACCEPTED);
 		assertError(ErrorCode.STOCK_HALTED, () -> place(buyer, symbol, Side.BUY, 71_000, 1));
 		assertInvariants();
@@ -271,6 +276,23 @@ class TradingTest extends IntegrationTest {
 		matchingService.reload(symbol);
 		awaitProcessed(symbol);
 		assertThat(orderService.get(buyer.userId(), buy.orderId()).status()).isEqualTo(OrderStatus.FILLED);
+	}
+
+	@Test
+	@DisplayName("밀린 명령은 묶어서 커밋하고 시간 우선은 그대로 지킨다")
+	void settlesInBatches() {
+		String symbol = stock();
+		Trader buyer = trader(10_000_000);
+		stopEngine(symbol);
+		List<OrderResponse> orders = IntStream.range(0, 60)
+			.mapToObj(i -> place(buyer, symbol, Side.BUY, 71_000, 1)).toList();
+		matchingService.reload(symbol);
+		awaitProcessed(symbol);
+		// xmin은 행을 마지막으로 바꾼 트랜잭션이다.
+		assertThat(jdbc.queryForObject("SELECT COUNT(DISTINCT xmin::text) FROM orders WHERE symbol = ?", Integer.class,
+			symbol)).isEqualTo(3);
+		assertThat(jdbc.queryForList("SELECT order_id FROM orders WHERE symbol = ? ORDER BY engine_seq", Long.class,
+			symbol)).isEqualTo(orders.stream().map(OrderResponse::orderId).toList());
 	}
 
 	@Test

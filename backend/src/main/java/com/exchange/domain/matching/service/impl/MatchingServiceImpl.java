@@ -48,6 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 public class MatchingServiceImpl implements MatchingService {
 
 	private static final int BATCH = 200;
+	// 커밋마다 디스크 동기화를 기다리므로 여러 명령을 한 번에 커밋한다. 크면 계좌 잠금을 오래 잡는다.
+	private static final int SETTLE_BATCH = 20;
 	private static final int DEPTH = 10;
 	private static final int MAX_FAILURES = 3;
 
@@ -152,8 +154,12 @@ public class MatchingServiceImpl implements MatchingService {
 		}
 		List<Command> commands = pending(state.symbol);
 		boolean progressed = commands.isEmpty();
-		for (Command command : commands) {
-			List<EngineEvent> events = command.apply(state.book);
+		// 실패한 뒤에는 하나씩 처리해, 문제가 있는 명령 때문에 앞선 명령까지 막히지 않게 한다.
+		int size = state.failures == 0 ? SETTLE_BATCH : 1;
+		for (int from = 0; from < commands.size(); from += size) {
+			List<EngineEvent> events = new ArrayList<>();
+			commands.subList(from, Math.min(from + size, commands.size()))
+				.forEach(command -> events.addAll(command.apply(state.book)));
 			if (events.isEmpty()) {
 				continue;
 			}
