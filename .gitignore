@@ -1,0 +1,22 @@
+# Build
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Editor / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets / local env
+.env
+.env.local
+application-local.yml
+
+# Local-only docs
+CLAUDE.md
+COMMIT.md
+DESIGN.md
+석사논문계획서-스푸핑탐지.md
