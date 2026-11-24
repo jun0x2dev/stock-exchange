@@ -75,7 +75,11 @@ test('시연 녹화', async ({ page }) => {
   caption = '대기 주문을 취소하면 묶인 돈이 풀립니다'
   const cancel = page.getByRole('tabpanel').getByRole('button', { name: '취소' })
   await expect(cancel).toHaveCount(1)
-  await tap(cancel.first(), 1500, 1500)
+  await tap(cancel.first(), 900)
+  await expect(cancel).toHaveCount(0)
+  await shot(1500)
+  // 다음 장면에 알림이 남지 않게 한다.
+  await expect(page.getByText('취소를 요청했어요')).toHaveCount(0)
 
   caption = '잔고의 모든 변화는 원장에 남습니다'
   await tap(page.getByRole('link', { name: '내 자산' }), 1600, 1200)
