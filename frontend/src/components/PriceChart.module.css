@@ -1,0 +1,12 @@
+.panel { padding: 14px 16px 12px; }
+.title { font-size: 15px; font-weight: 700; }
+.title small { color: var(--ink-3); font-weight: 400; font-size: 13px; }
+.plot { position: relative; }
+.plot svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.base { stroke: var(--line); stroke-dasharray: 4 4; }
+.cross { stroke: var(--ink-3); stroke-width: 1; }
+.dot { stroke: var(--surface); stroke-width: 2; }
+.label { fill: var(--ink-3); font-size: 12px; }
+.lastLabel { fill: var(--ink); font-size: 14px; font-weight: 700; }
+.tip { position: absolute; top: 4px; padding: 6px 10px; border-radius: 8px; background: var(--solid); color: var(--on-solid); font-size: 13px; line-height: 1.4; pointer-events: none; white-space: nowrap; }

@@ -1,0 +1,30 @@
+.panel { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.buy { --accent: var(--up); }
+.sell { --accent: var(--down); }
+.sides { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 12px; background: var(--sunken); }
+.sides button { min-height: 40px; border-radius: 9px; color: var(--ink-2); font-weight: 600; }
+.sides button[aria-pressed='true'] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 2px rgb(16 24 34 / .12); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.stepper { display: grid; grid-template-columns: 44px 1fr auto 44px; align-items: center; height: 48px; border: 1px solid var(--line); border-radius: var(--radius-control); }
+.stepper:focus-within { outline: 2px solid var(--ink); outline-offset: -1px; }
+.stepper input { min-width: 0; border: 0; background: none; outline: none; text-align: right; font-weight: 600; font-size: 16px; }
+.stepper input::placeholder { color: var(--ink-3); font-weight: 400; }
+.stepper span { padding: 0 8px 0 4px; color: var(--ink-2); }
+.stepper button { height: 100%; font-size: 20px; color: var(--ink-2); }
+.current { align-self: flex-start; font-size: 13px; color: var(--ink-3); text-decoration: underline; text-underline-offset: 3px; }
+.ratios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.summary { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.summary > div { display: flex; justify-content: space-between; }
+.summary dt { color: var(--ink-3); }
+.total dd { font-weight: 700; font-size: 16px; }
+.problem { min-height: 21px; font-size: 14px; color: var(--ink-2); }
+.submit { min-height: 52px; border-radius: 14px; background: var(--accent); color: #fff; font-weight: 700; font-size: 16px; }
+.dialog { width: min(360px, calc(100vw - 32px)); border-radius: 20px; }
+.dialog > div { display: flex; flex-direction: column; gap: 20px; padding: 24px 20px 20px; }
+.dialog h3 { font-size: 20px; line-height: 1.4; }
+.dialog em { font-style: normal; color: var(--accent); }
+.error { padding: 10px 12px; border-radius: 10px; background: var(--sunken); font-size: 14px; }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.actions button { min-height: 52px; border-radius: 14px; }
+@media (prefers-color-scheme: dark) { .submit { color: #10161d; } }

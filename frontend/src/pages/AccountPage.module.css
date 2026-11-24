@@ -1,0 +1,25 @@
+.page { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; max-width: 1120px; margin: 0 auto; padding: 8px 20px 32px; align-items: start; }
+.summary { padding: 8px 4px 12px; }
+.summary h1 { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+.total { font-size: 36px; font-weight: 700; line-height: 1.25; letter-spacing: -.02em; }
+.pnl { color: var(--ink-3); }
+.pnl b { font-weight: 600; }
+.figures { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 8px 32px; margin-top: 20px; }
+.figures dt { font-size: 13px; color: var(--ink-3); }
+.figures dd { font-weight: 600; }
+.section { padding: 16px; overflow: hidden; }
+.section h2 { margin-bottom: 8px; font-size: 16px; }
+.scroll { overflow-x: auto; margin: 0 -16px; }
+.deposit { display: flex; flex-direction: column; gap: 10px; }
+.deposit h2 { margin: 0; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ledgers { max-height: 520px; overflow-y: auto; margin-bottom: 8px; }
+.ledgers li { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.ledgers span { display: flex; flex-direction: column; }
+.ledgers b { font-weight: 600; }
+.ledgers small { font-size: 13px; color: var(--ink-3); }
+.delta { text-align: right; }
+@media (max-width: 899px) {
+  .page { grid-template-columns: minmax(0, 1fr); padding: 8px 16px 32px; }
+  .figures { grid-template-columns: 1fr 1fr; gap: 12px; }
+}

@@ -1,0 +1,10 @@
+.header { display: flex; align-items: center; gap: 20px; height: 60px; padding: 0 20px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; }
+.nav { display: flex; gap: 18px; margin-right: auto; font-weight: 500; color: var(--ink-2); }
+.current { color: var(--ink); font-weight: 700; }
+.user { color: var(--ink-3); font-size: 14px; }
+@media (max-width: 767px) {
+  .header { padding: 0 16px; gap: 14px; height: 54px; }
+  .brand { font-size: 0; }
+  .user { display: none; }
+}

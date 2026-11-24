@@ -1,0 +1,3 @@
+.area { position: fixed; inset: auto 0 88px; z-index: 20; display: flex; justify-content: center; pointer-events: none; }
+.toast { padding: 12px 20px; border-radius: 999px; background: var(--solid); color: var(--on-solid); font-weight: 500; animation: rise .18s ease-out; }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }

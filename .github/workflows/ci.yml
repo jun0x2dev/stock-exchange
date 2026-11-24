@@ -25,6 +25,17 @@ jobs:
       - run: ./gradlew build --no-daemon
         working-directory: backend
 
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # 설치 스크립트를 실행하지 않아 악성 패키지의 영향을 줄인다.
+      - run: npm ci --ignore-scripts && npm run build
+        working-directory: frontend
+
   secrets:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -51,7 +62,7 @@ jobs:
         run: >-
           docker run --rm -v "$PWD:/src:ro"
           semgrep/semgrep@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0
-          semgrep scan --config p/java --config p/owasp-top-ten --config p/github-actions
+          semgrep scan --config p/java --config p/typescript --config p/react --config p/owasp-top-ten --config p/github-actions
           --metrics=off --error /src
 
   dependencies:

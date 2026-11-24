@@ -1,0 +1,12 @@
+.panel { display: flex; flex-direction: column; overflow: hidden; }
+.tabs { display: flex; gap: 4px; padding: 10px 10px 6px; overflow-x: auto; scrollbar-width: none; }
+.tabs button { flex: none; min-height: 36px; padding: 0 12px; border-radius: 10px; color: var(--ink-3); font-weight: 600; font-size: 14px; }
+.tabs button[aria-selected='true'] { background: var(--sunken); color: var(--ink); }
+.body { overflow: auto; max-height: 320px; }
+.table { font-size: 14px; white-space: nowrap; }
+.table th { position: sticky; top: 0; background: var(--surface); padding: 6px 8px; text-align: right; color: var(--ink-3); font-weight: 400; font-size: 13px; }
+.table td { padding: 8px; text-align: right; border-top: 1px solid var(--line); }
+.table :is(th, td):first-child { padding-left: 20px; text-align: left; font-weight: 600; }
+.table th:first-child { font-weight: 400; }
+.table :is(th, td):last-child { padding-right: 16px; }
+.table button { min-height: 30px; }

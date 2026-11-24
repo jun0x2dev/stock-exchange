@@ -1,6 +1,11 @@
 # Build
 .gradle/
 build/
+node_modules/
+dist/
+test-results/
+playwright-report/
+screenshots/
 
 # Editor / OS
 .idea/
