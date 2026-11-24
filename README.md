@@ -3,7 +3,38 @@
 주문을 받아 자체 매칭 엔진으로 체결하고, 복식부기 원장에 기록하는 미니 증권사 + 거래소입니다.
 돈과 주식이 **유실되거나 중복되지 않게** 처리하고, 그것을 테스트와 대사로 **증명하는 것**이 목표입니다.
 
-> **현재 상태: 설계를 마치고 1단계를 구현하고 있습니다.** 아래 내용은 설계이며, 구현 현황은 [진행 단계](#진행-단계)에 표시합니다.
+> **현재 상태: 1단계 코드를 작성했고 실제 DB로 검증하고 있습니다.** 검증이 끝난 항목만 [진행 단계](#진행-단계)에 완료로 표시합니다.
+
+## 시연
+
+<table>
+<tr>
+<td width="380"><img src="./docs/demo.gif" width="360" alt="로그인부터 주문, 체결, 재시도, 취소, 원장 확인까지의 모바일 화면"></td>
+<td valign="top">
+
+1. **호가 선택**: 호가를 누르면 그 가격이 주문서에 들어갑니다.
+2. **주문**: 수량을 비율로 고르고, 확인 창에서 주문 내용을 다시 봅니다.
+3. **체결**: 최우선 매도 호가로 주문해 바로 체결되고, 체결 내역과 보유 종목에 나타납니다.
+4. **응답 유실**: 서버는 주문을 받았지만 응답이 끊긴 상황입니다. 화면은 실패라고 단정하지 않고 확인하지 못했다고 알립니다.
+5. **재시도**: 같은 멱등키로 다시 보내 대기 주문이 **1건만** 생깁니다.
+6. **취소**: 대기 주문을 취소하면 묶인 예약금이 풀립니다.
+7. **원장**: 입금, 예약, 체결, 해제가 모두 거래내역에 남습니다.
+
+</td>
+</tr>
+</table>
+
+화면 동작을 보여 주기 위해 **모의 API로 녹화**했습니다. 종목과 가격은 모두 가상입니다.
+
+## 화면
+
+| 화면 | 내용 |
+|---|---|
+| 로그인 | 세션 쿠키 로그인, 실패 시 계정 존재 여부를 알 수 없는 같은 안내 |
+| 거래 | 종목 목록, 체결가 차트, 10단계 호가, 지정가 주문, 대기·체결·보유·시세 탭 |
+| 내 자산 | 총자산, 평가·실현손익, 모의 입금, 현금 원장 |
+
+증권사 앱의 관례(상승 빨강, 하락 파랑)를 따르고, 빨강과 파랑은 매수·매도와 등락에만 씁니다. 모바일, 태블릿, 데스크톱과 라이트·다크 모드를 지원합니다.
 
 ## 풀려는 문제
 
@@ -142,7 +173,7 @@ flowchart LR
 | 구분 | 기술 |
 |---|---|
 | Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA |
-| Frontend | React, Vite, TypeScript, TanStack Query (1단계 후반) |
+| Frontend | React, Vite, TypeScript, TanStack Query |
 | Database | PostgreSQL, Flyway |
 | Messaging | Kafka (2단계) |
 | Test | JUnit 5, Testcontainers, k6, Playwright |
@@ -153,7 +184,7 @@ flowchart LR
 
 ```
 backend/     Spring Boot
-frontend/    React (1단계 후반에 추가)
+frontend/    React
 docs/        설계 결정, 트러블슈팅, 실험 기록
 compose.yml  로컬 개발용 PostgreSQL
 ```
@@ -162,7 +193,7 @@ compose.yml  로컬 개발용 PostgreSQL
 
 ## 로컬 실행
 
-JDK 21과 Docker가 필요합니다.
+JDK 21, Node.js 22.12 이상, Docker가 필요합니다.
 
 ```bash
 cp .env.example .env   # POSTGRES_PASSWORD 값을 채운다
@@ -170,6 +201,19 @@ cd backend
 ./gradlew bootRun      # PostgreSQL 컨테이너를 함께 띄운다 (localhost:5433)
 ./gradlew build        # 테스트 (Testcontainers)
 ```
+
+`.env`에 `EXCHANGE_DEMO_PASSWORD`를 채우면 체험용 사용자(`demo`)와 호가가 만들어집니다. 다른 터미널에서 화면을 띄웁니다.
+
+```bash
+cd frontend
+npm ci
+npm run dev            # http://localhost:5173, /api는 백엔드로 프록시
+npm run e2e            # Playwright 헤드리스 (EXCHANGE_DEMO_PASSWORD 환경변수 필요)
+```
+
+시연 GIF를 다시 만들 때는 `DEMO=1 npx playwright test demo --project=mobile` 후 `python3 e2e/make-demo-gif.py <한글 글꼴 경로>`를 실행합니다(Pillow 필요).
+
+`npm run build` 후 `./gradlew bootJar`를 실행하면 화면이 jar에 포함되어 같은 출처로 서비스됩니다.
 
 ## 범위와 주의 사항
 
