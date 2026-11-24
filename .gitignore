@@ -1,7 +1,6 @@
 # Build
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Editor / OS
 .idea/

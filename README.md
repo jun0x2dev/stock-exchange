@@ -105,7 +105,7 @@ flowchart LR
 
 ### 1단계: 정확한 단일 서버
 
-- [ ] 프로젝트 세팅, CI 보안 검사
+- [x] 프로젝트 세팅, CI 보안 검사
 - [ ] 로그인, 계좌 소유자 검증
 - [ ] 모의 입금, 모의 주식 입고
 - [ ] 지정가 주문 접수, 예약, 멱등키
@@ -113,6 +113,7 @@ flowchart LR
 - [ ] 체결 반영, 복식부기 원장
 - [ ] 재시작 시 호가창 복원
 - [ ] 대사 SQL, 부하 테스트 기준값 측정
+- [ ] 거래 화면 (로그인, 호가창·주문, 주문·체결 내역, 잔고·보유 종목)
 
 ### 2단계: 이벤트 기반 분리
 
@@ -120,6 +121,7 @@ flowchart LR
 - [ ] 리플레이, 이벤트 중복·누락 처리
 - [ ] 시장가, 정정, 수수료·거래세
 - [ ] 시세 수집, WebSocket, 호가 공급 봇
+- [ ] 실시간 호가·체결 화면
 
 ### 3단계: 보안·신뢰성
 
@@ -127,22 +129,36 @@ flowchart LR
 - [ ] 감사 로그 해시 체인, 개인정보 암호화와 키 교체
 - [ ] 원장 정정 승인 분리, 일 단위 대사 배치
 - [ ] 엔진 스냅샷, 모니터링, 부하 테스트 개선 비교
+- [ ] 운영자 화면 (대사 결과, 감사 로그 검증, 원장 정정 승인)
 
 ### 4단계: 이상거래 탐지
 
 - [ ] 허수성 호가, 통정·가장매매, 비정상 로그인 탐지
 - [ ] 정밀도·재현율 측정
+- [ ] 이상거래 알림 화면
 
 ## 기술 스택
 
 | 구분 | 기술 |
 |---|---|
 | Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA |
+| Frontend | React, Vite, TypeScript, TanStack Query (1단계 후반) |
 | Database | PostgreSQL, Flyway |
 | Messaging | Kafka (2단계) |
-| Test | JUnit 5, Testcontainers, k6 |
+| Test | JUnit 5, Testcontainers, k6, Playwright |
 | Security | gitleaks, Semgrep, Trivy, OWASP ZAP (3단계) |
 | Infra | Docker Compose, GitHub Actions, Prometheus·Grafana (3단계) |
+
+## 저장소 구조
+
+```
+backend/     Spring Boot
+frontend/    React (1단계 후반에 추가)
+docs/        설계 결정, 트러블슈팅, 실험 기록
+compose.yml  로컬 개발용 PostgreSQL
+```
+
+백엔드와 프론트엔드는 같은 저장소에서 폴더로 나누고, 같은 출처로 서비스합니다.
 
 ## 로컬 실행
 
@@ -150,6 +166,7 @@ JDK 21과 Docker가 필요합니다.
 
 ```bash
 cp .env.example .env   # POSTGRES_PASSWORD 값을 채운다
+cd backend
 ./gradlew bootRun      # PostgreSQL 컨테이너를 함께 띄운다 (localhost:5433)
 ./gradlew build        # 테스트 (Testcontainers)
 ```

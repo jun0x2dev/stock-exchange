@@ -23,6 +23,7 @@ jobs:
           java-version: 21
           cache: gradle
       - run: ./gradlew build --no-daemon
+        working-directory: backend
 
   secrets:
     runs-on: ubuntu-latest

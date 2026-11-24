@@ -43,6 +43,11 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.named('bootRun') {
+	// 저장소 루트의 compose.yml과 .env를 찾도록 루트에서 실행한다.
+	workingDir = rootDir.parentFile
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
