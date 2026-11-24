@@ -2,6 +2,7 @@ package com.exchange.domain.ledger.entity;
 
 import java.time.Instant;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -40,6 +41,8 @@ public class PositionLedger {
 
 	private long refId;
 
+	// 앱 시계가 아니라 DB 시계로 남긴다.
+	@Column(insertable = false, updatable = false)
 	private Instant createdAt;
 
 	/** 잔고 증감과 예약 증감을 기록한다. */
@@ -53,7 +56,6 @@ public class PositionLedger {
 		ledger.reservedDelta = reservedDelta;
 		ledger.refType = ref.refType();
 		ledger.refId = ref.refId();
-		ledger.createdAt = Instant.now();
 		return ledger;
 	}
 }

@@ -58,6 +58,8 @@ public class Order {
 
 	private Instant createdAt;
 
+	// DB 트리거가 DB 시계로 바꾼다.
+	@Column(insertable = false, updatable = false)
 	private Instant updatedAt;
 
 	/** 매수 주문에 필요한 예약금. */
@@ -74,21 +76,21 @@ public class Order {
 	public void accept(long seq) {
 		requireStatus(status == OrderStatus.ACCEPTED);
 		engineSeq = seq;
-		changeStatus(OrderStatus.OPEN);
+		status = OrderStatus.OPEN;
 	}
 
 	/** 체결을 반영하고, 매수면 풀어야 할 예약금을 반환한다. */
 	public long fill(long traded) {
 		requireStatus(OrderStatus.ON_BOOK.contains(status) && traded <= remaining());
 		filledQuantity += traded;
-		changeStatus(remaining() == 0 ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED);
+		status = remaining() == 0 ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 		return shrinkReserve(side == Side.BUY ? reserveAmount(price, remaining()) : 0);
 	}
 
 	/** 남은 수량을 취소하고, 매수면 풀어야 할 예약금을 반환한다. */
 	public long cancel() {
 		requireStatus(OrderStatus.ON_BOOK.contains(status));
-		changeStatus(OrderStatus.CANCELED);
+		status = OrderStatus.CANCELED;
 		return shrinkReserve(0);
 	}
 
@@ -97,12 +99,6 @@ public class Order {
 		long released = reservedAmount - next;
 		reservedAmount = next;
 		return released;
-	}
-
-	// 상태와 변경 시각을 함께 바꾼다.
-	private void changeStatus(OrderStatus next) {
-		status = next;
-		updatedAt = Instant.now();
 	}
 
 	// 엔진과 DB가 어긋났으면 반영하지 않고 종목 처리를 멈추게 한다.

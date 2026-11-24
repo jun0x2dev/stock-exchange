@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import com.exchange.engine.EngineEvent;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,6 +35,8 @@ public class Execution {
 
 	private long quantity;
 
+	// 앱 시계가 아니라 DB 시계로 남긴다.
+	@Column(insertable = false, updatable = false)
 	private Instant executedAt;
 
 	/** 엔진의 체결 이벤트에서 만든다. */
@@ -45,7 +48,6 @@ public class Execution {
 		execution.sellOrderId = event.sellOrderId();
 		execution.price = event.price();
 		execution.quantity = event.quantity();
-		execution.executedAt = Instant.now();
 		return execution;
 	}
 }

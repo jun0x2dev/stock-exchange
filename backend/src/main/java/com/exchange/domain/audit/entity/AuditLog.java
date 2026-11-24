@@ -2,6 +2,7 @@ package com.exchange.domain.audit.entity;
 
 import java.time.Instant;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,6 +29,8 @@ public class AuditLog {
 
 	private String result;
 
+	// 앱 시계가 아니라 DB 시계로 남긴다.
+	@Column(insertable = false, updatable = false)
 	private Instant createdAt;
 
 	/** 감사 로그를 만든다. 컬럼 길이를 넘는 경로는 잘라 기록 자체가 실패하지 않게 한다. */
@@ -38,7 +41,6 @@ public class AuditLog {
 		log.action = action.length() > 100 ? action.substring(0, 100) : action;
 		log.target = target;
 		log.result = result;
-		log.createdAt = Instant.now();
 		return log;
 	}
 }

@@ -288,6 +288,27 @@ class TradingTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("주문, 체결, 원장, 감사 로그의 시각은 모두 DB 시계로 남아 전후 관계가 뒤집히지 않는다")
+	void timestampsUseDatabaseClock() {
+		String symbol = stock();
+		Trader seller = trader(0);
+		giveStock(seller, symbol, 1);
+		Trader buyer = trader(1_000_000);
+		place(seller, symbol, Side.SELL, 71_000, 1);
+		OrderResponse buy = place(buyer, symbol, Side.BUY, 71_000, 1);
+		awaitProcessed(symbol);
+		assertThat(jdbc.queryForObject("""
+			SELECT o.created_at <= e.executed_at AND e.executed_at <= l.created_at AND e.executed_at <= o.updated_at
+			       AND l.created_at <= clock_timestamp() AND o.updated_at <= clock_timestamp()
+			  FROM orders o JOIN execution e ON e.buy_order_id = o.order_id
+			  JOIN cash_ledger l ON l.type = 'BUY' AND l.ref_type = 'EXECUTION' AND l.ref_id = e.execution_id
+			 WHERE o.order_id = ?
+			""", Boolean.class, buy.orderId())).isTrue();
+		assertThat(jdbc.queryForObject("SELECT max(created_at) <= clock_timestamp() FROM audit_log", Boolean.class))
+			.isTrue();
+	}
+
+	@Test
 	@DisplayName("원장, 체결, 감사 로그는 DB에서 직접 수정하거나 지울 수 없다")
 	void ledgersAreAppendOnly() {
 		for (String table : List.of("cash_ledger", "position_ledger", "execution", "audit_log")) {
