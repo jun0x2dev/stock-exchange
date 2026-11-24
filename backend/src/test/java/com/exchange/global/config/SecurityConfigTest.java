@@ -14,7 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.exchange.TestcontainersConfiguration;
@@ -66,6 +66,6 @@ class SecurityConfigTest {
 	@Test
 	@DisplayName("기본 사용자가 자동 생성되지 않는다")
 	void defaultUserIsNotCreated() {
-		assertThat(context.getBeanNamesForType(UserDetailsService.class)).isEmpty();
+		assertThat(context.getBeanNamesForType(InMemoryUserDetailsManager.class)).isEmpty();
 	}
 }

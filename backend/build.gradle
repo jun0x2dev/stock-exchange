@@ -29,6 +29,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	// Argon2PasswordEncoder의 구현체
+	implementation 'org.bouncycastle:bcprov-jdk18on:1.87'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -46,6 +48,13 @@ dependencies {
 tasks.named('bootRun') {
 	// 저장소 루트의 compose.yml과 .env를 찾도록 루트에서 실행한다.
 	workingDir = rootDir.parentFile
+}
+
+tasks.named('bootJar') {
+	// 화면을 빌드해 두면 같은 출처로 서비스하도록 jar에 넣는다.
+	from('../frontend/dist') {
+		into 'BOOT-INF/classes/static'
+	}
 }
 
 tasks.named('test') {
