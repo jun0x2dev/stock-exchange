@@ -9,7 +9,7 @@ import { useAccount, useLedgers, usePositions } from '../lib/queries'
 import styles from './AccountPage.module.css'
 
 const LEDGER_LABEL: Record<Ledger['type'], string> = {
-  DEPOSIT: '입금', RESERVE: '주문 예약', RELEASE: '예약 해제', BUY: '주식 구매', SELL: '주식 판매',
+  DEPOSIT: '입금', RESERVE: '주문 예약', RELEASE: '예약 해제', BUY: '주식 구매', SELL: '주식 판매', REVERSAL: '입금 정정',
 }
 
 /** 총자산, 보유 종목, 모의 입금, 현금 거래내역. */

@@ -1,7 +1,7 @@
 export type Side = 'BUY' | 'SELL'
 export type OrderStatus = 'ACCEPTED' | 'OPEN' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELED'
 
-export interface Me { loginId: string; role: 'CUSTOMER' | 'OPERATOR' }
+export interface Me { loginId: string; role: 'CUSTOMER' | 'OPERATOR' | 'APPROVER' | 'AUDITOR' }
 export interface Stock {
   symbol: string; name: string; status: 'TRADABLE' | 'HALTED'
   basePrice: number; lastPrice: number; upperLimit: number; lowerLimit: number
@@ -22,7 +22,7 @@ export interface Execution {
   executionId: number; orderId: number; symbol: string; side: Side; price: number; quantity: number; executedAt: string
 }
 export interface Ledger {
-  ledgerId: number; type: 'DEPOSIT' | 'RESERVE' | 'RELEASE' | 'BUY' | 'SELL'
+  ledgerId: number; type: 'DEPOSIT' | 'RESERVE' | 'RELEASE' | 'BUY' | 'SELL' | 'REVERSAL'
   cashDelta: number; reservedDelta: number; createdAt: string
 }
 export interface Page<T> { items: T[]; nextCursor: number | null }
