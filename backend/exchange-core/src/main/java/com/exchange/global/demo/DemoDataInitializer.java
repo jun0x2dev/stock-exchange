@@ -57,6 +57,8 @@ public class DemoDataInitializer implements ApplicationRunner {
 			return;
 		}
 		user("operator", Role.OPERATOR);
+		user("approver", Role.APPROVER);
+		user("auditor", Role.AUDITOR);
 		Trader demo = trader("demo");
 		Trader maker = trader("maker");
 		Trader taker = trader("taker");

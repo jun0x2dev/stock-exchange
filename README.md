@@ -3,7 +3,7 @@
 주문을 받아 자체 매칭 엔진으로 체결하고, 복식부기 원장에 기록하는 미니 증권사 + 거래소입니다.
 돈과 주식이 **유실되거나 중복되지 않게** 처리하고, 그것을 테스트와 대사로 **증명하는 것**이 목표입니다.
 
-> **현재 상태: 1단계를 마치고 2단계의 엔진 분리(Kafka·Outbox), 모의 시세와 호가 봇, 실시간 화면까지 구현하고 검증했습니다.** 성능 목표는 아직 달성하지 못했습니다([원인 측정](docs/experiments/2026-11-24-order-latency-cause.md)). 나머지는 설계이며 [진행 단계](#진행-단계)에 구현 현황을 표시합니다.
+> **현재 상태: 1단계와 2단계의 엔진 분리(Kafka·Outbox), 모의 시세와 호가 봇, 실시간 화면을 마치고, 3단계의 감사 로그 해시 체인, 원장 정정 승인 분리, DB 계정 분리까지 구현했습니다.** 성능 목표는 아직 달성하지 못했습니다([원인 측정](docs/experiments/2026-11-24-order-latency-cause.md)). 나머지는 설계이며 [진행 단계](#진행-단계)에 구현 현황을 표시합니다.
 
 ## 시연
 
@@ -114,8 +114,8 @@ flowchart LR
 | 계정 탈취 | Argon2id, 로그인 실패 잠금, 고위험 거래 TOTP |
 | 요청 변조·재전송 | TLS, HMAC-SHA256 서명, 타임스탬프, nonce |
 | 다른 사람의 계좌 접근 | 모든 계좌·주문 접근에서 소유자 검증 |
-| 원장 조작 | 애플리케이션 DB 계정에 수정·삭제 권한 미부여, 정정은 반대 전표와 승인자 분리 |
-| 거래 부인 | 감사 로그와 해시 체인 |
+| 원장 조작 | 애플리케이션 DB 계정에 수정·삭제 권한 미부여, 정정은 반대 전표와 승인자 분리 (구현) |
+| 거래 부인 | 감사 로그와 HMAC 해시 체인, 마지막 값을 DB 밖에 보관 (구현) |
 | 개인정보 노출 | AES-256-GCM 암호화, 로그 마스킹, 가상 데이터만 사용 |
 | 주문 폭주 | 계좌별 속도 제한, 큐 크기 제한 |
 
@@ -140,6 +140,7 @@ flowchart LR
 | 동시성 테스트 | 같은 계좌 동시 주문 40건, 같은 멱등키 동시 요청 20건, 취소·체결 경합 30회에서 불변식 위반 0건 |
 | 주문 접수 지연 (초당 40건, HDD) | 계좌 30개 분산 p99 484ms, 3개 집중 p99 1,502ms. **목표 100ms 미달** ([기록](docs/experiments/2026-11-24-order-latency-cause.md)) |
 | 시세 중단 | 시세 프로세스를 죽이면 봇이 5.7초 안에 호가를 모두 거둠. 봇끼리 체결 0건, 불변식 위반 0건 |
+| 감사 로그 변조, 자기 승인 | DB 관리자가 트리거를 끄고 고치거나 지워도 검증에서 탐지. 앱 계정의 원장 수정 시도는 모두 거부 ([기록](docs/experiments/2026-11-25-audit-tampering.md)) |
 | 지연 원인 | 커밋마다 일어나는 디스크 동기화(1회 44ms). 진단용으로 동기화를 끄면 같은 부하에서 p99 13ms 이하 |
 | 체결 개선 | 명령을 묶어 커밋해 접수~체결 p99 5,432 → 783ms, 밀린 주문 92 → 0건 (계좌 30개). 목표 300ms에는 미달 |
 
@@ -169,8 +170,9 @@ flowchart LR
 ### 3단계: 보안·신뢰성
 
 - [ ] HMAC 서명, 재전송 방지, TOTP
-- [ ] 감사 로그 해시 체인, 개인정보 암호화와 키 교체
-- [ ] 원장 정정 승인 분리, 일 단위 대사 배치
+- [x] 감사 로그 해시 체인
+- [x] 원장 정정 승인 분리, DB 계정 분리
+- [ ] 개인정보 암호화와 키 교체, 일 단위 대사 배치
 - [ ] 엔진 스냅샷, 모니터링, 부하 테스트 개선 비교
 - [ ] 운영자 화면 (대사 결과, 감사 로그 검증, 원장 정정 승인)
 
@@ -211,10 +213,10 @@ compose.yml  로컬 개발용 PostgreSQL, Kafka
 
 ### Docker로 한 번에 띄우기
 
-Docker만 있으면 됩니다. `.env`에 두 값을 채우고 저장소 루트에서 실행합니다.
+Docker만 있으면 됩니다. `.env`의 값을 채우고 저장소 루트에서 실행합니다.
 
 ```bash
-cp .env.example .env                  # POSTGRES_PASSWORD, EXCHANGE_DEMO_PASSWORD 값을 채운다
+cp .env.example .env                  # CORE_PORT를 뺀 값을 모두 채운다
 docker compose --profile app up --build
 ```
 
@@ -225,7 +227,7 @@ http://localhost:8080 에서 `demo`로 로그인합니다. 모의 시세와 호�
 실행하는 프로그램은 API 서버(core), 매칭 엔진, 화면 세 개입니다. 터미널을 나눠 순서대로 띄웁니다. JDK 21, Node.js 22.12 이상, Docker가 필요합니다.
 
 ```bash
-cp .env.example .env                  # POSTGRES_PASSWORD 값을 채운다
+cp .env.example .env                  # EXCHANGE_DEMO_PASSWORD, CORE_PORT를 뺀 값을 모두 채운다
 cd backend
 ./gradlew :exchange-core:bootRun      # PostgreSQL(5433)과 Kafka(9094) 컨테이너를 함께 띄운다
 ./gradlew :exchange-engine:run        # 다른 터미널에서. core가 먼저 떠 있어야 한다
@@ -234,9 +236,9 @@ cd backend
 
 호가가 움직이는 화면을 보려면 core를 `EXCHANGE_BOT_ENABLED=true`로 띄우고 `./gradlew :exchange-feed:run`을 함께 실행합니다. 8080을 다른 프로그램이 쓰면 core는 `SERVER_PORT`, 화면은 `BACKEND_URL` 환경변수로 바꿉니다.
 
-DB와 Kafka 데이터는 짝이 맞아야 하므로 초기화할 때는 저장소 루트에서 `docker compose down -v`로 함께 지웁니다.
+DB와 Kafka 데이터는 짝이 맞아야 하므로 초기화할 때는 저장소 루트에서 `docker compose down -v`로 함께 지웁니다. 개발 환경에서는 감사 로그 체인의 마지막 값(`audit-anchor.log`)도 지웁니다. 남겨 두면 감사 로그 검증이 기록이 지워졌다고 알립니다.
 
-`.env`에 `EXCHANGE_DEMO_PASSWORD`를 채우면 체험용 사용자(`demo`)와 호가가 만들어집니다. 다른 터미널에서 화면을 띄웁니다.
+`.env`에 `EXCHANGE_DEMO_PASSWORD`를 채우면 체험용 사용자(`demo`, 운영자 `operator`, 승인자 `approver`, 감사 담당자 `auditor`)와 호가가 만들어집니다. 다른 터미널에서 화면을 띄웁니다.
 
 ```bash
 cd frontend

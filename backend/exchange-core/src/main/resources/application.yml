@@ -4,6 +4,10 @@ spring:
   config:
     # 로컬 개발 값. git에 올리지 않는다.
     import: optional:file:.env[.properties]
+  flyway:
+    placeholders:
+      # 앱 계정의 비밀번호를 마이그레이션이 맞춘다.
+      apppassword: ${exchange.db.app-password}
   jackson:
     deserialization:
       # 1.5주를 1주로 잘라 접수하지 않는다.
@@ -60,6 +64,14 @@ server:
         same-site: strict
 
 exchange:
+  db:
+    # 앱 전용 DB 계정(exchange_app)의 비밀번호.
+    app-password: ${EXCHANGE_DB_APP_PASSWORD:}
+  audit:
+    # 감사 로그 체인의 HMAC 키(Base64, 32바이트 이상).
+    key: ${EXCHANGE_AUDIT_KEY:}
+    # 체인의 마지막 값을 DB 밖에 남길 파일.
+    anchor-file: ${EXCHANGE_AUDIT_ANCHOR_FILE:audit-anchor.log}
   bot:
     # 켜면 quote 토픽의 시세를 따라 maker가 호가를 내고 taker가 거래한다. exchange-feed도 함께 띄워야 한다.
     enabled: ${EXCHANGE_BOT_ENABLED:false}

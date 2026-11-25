@@ -6,6 +6,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.exchange.domain.account.dto.AccountResponse;
@@ -118,6 +119,40 @@ public class AccountServiceImpl implements AccountService {
 		auditService.recordSuccess("STOCK_DEPOSIT", "deposit=" + depositId);
 		log.info("주식 입고: accountId={}, depositId={}", accountId, depositId);
 		return new DepositResponse(depositId);
+	}
+
+	@Override
+	public void requireDeposit(long depositId) {
+		findDeposit(depositId);
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void reverseDeposit(long depositId, long adjustmentId) {
+		Deposit deposit = findDeposit(depositId);
+		long accountId = deposit.getAccountId();
+		long amount = deposit.getAmount();
+		String symbol = deposit.getSymbol();
+		int updated = symbol == null ? accountRepository.withdraw(accountId, amount)
+			: positionRepository.withdraw(accountId, symbol, amount);
+		if (updated != 1) {
+			throw new AccountException(ErrorCode.ADJUSTMENT_NOT_REVERSIBLE);
+		}
+		LedgerRef ref = ledgerService.open(LedgerType.REVERSAL, RefType.ADJUSTMENT, adjustmentId);
+		long externalId = accountRepository.findExternalId();
+		if (symbol == null) {
+			ledgerService.cash(ref, accountId, -amount, 0);
+			ledgerService.cash(ref, externalId, amount, 0);
+		} else {
+			ledgerService.stock(ref, accountId, symbol, -amount, 0);
+			ledgerService.stock(ref, externalId, symbol, amount, 0);
+		}
+	}
+
+	// 입금·입고 기록을 찾는다.
+	private Deposit findDeposit(long depositId) {
+		return depositRepository.findByDepositId(depositId)
+			.orElseThrow(() -> new AccountException(ErrorCode.DEPOSIT_NOT_FOUND));
 	}
 
 	// 같은 멱등키의 이전 결과를 돌려준다. 본문이 다르면 거부한다.

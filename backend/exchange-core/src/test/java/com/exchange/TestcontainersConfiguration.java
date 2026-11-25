@@ -1,14 +1,19 @@
 package com.exchange;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.exchange.engine.app.EngineRunner;
+import com.zaxxer.hikari.HikariDataSource;
 
 /** 테스트용 PostgreSQL, Kafka, 매칭 엔진 설정. 로컬 개발 환경과 같은 버전을 쓴다. */
 @TestConfiguration(proxyBeanMethods = false)
@@ -20,6 +25,24 @@ public class TestcontainersConfiguration {
 	PostgreSQLContainer postgresContainer() {
 		// 테스트 데이터는 남기지 않으므로 메모리에 둔다. 느린 디스크에서 기동이 제한 시간을 넘기는 것을 막는다.
 		return new PostgreSQLContainer("postgres:17-alpine").withTmpFs(Map.of("/var/lib/postgresql/data", "rw"));
+	}
+
+	/** 감사 로그 체인의 마지막 값을 DB마다 다른 파일에 남긴다. */
+	@Bean
+	DynamicPropertyRegistrar anchorFile() throws IOException {
+		Path file = Files.createTempDirectory("audit").resolve("anchor.log");
+		return registry -> registry.add("exchange.audit.anchor-file", file::toString);
+	}
+
+	/** 테스트 준비와 변조 재현에 쓰는 DB 소유자 연결. 애플리케이션은 쓰지 않는다. */
+	@Bean(defaultCandidate = false)
+	HikariDataSource ownerPool(PostgreSQLContainer postgres) {
+		HikariDataSource pool = new HikariDataSource();
+		pool.setJdbcUrl(postgres.getJdbcUrl());
+		pool.setUsername(postgres.getUsername());
+		pool.setPassword(postgres.getPassword());
+		pool.setMaximumPoolSize(4);
+		return pool;
 	}
 
 	/** 접속 정보가 자동으로 주입되는 Kafka 컨테이너를 만든다. */

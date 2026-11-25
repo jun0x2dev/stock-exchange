@@ -19,6 +19,9 @@ public interface DepositRepository extends Repository<Deposit, Long> {
 		""")
 	Optional<Long> insertIfAbsent(long accountId, String symbol, long amount, String key, String hash);
 
+	/** ID로 찾는다. */
+	Optional<Deposit> findByDepositId(long depositId);
+
 	/** 멱등키로 찾는다. */
 	Optional<Deposit> findByAccountIdAndIdempotencyKey(long accountId, String idempotencyKey);
 }

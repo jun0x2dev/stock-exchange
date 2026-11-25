@@ -8,17 +8,21 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
+import com.exchange.domain.audit.service.AuditService;
 import com.exchange.domain.user.dto.LoginUser;
 import com.exchange.domain.user.dto.MeResponse;
 import com.exchange.domain.user.service.LoginService;
 import com.exchange.global.error.ErrorCode;
 import com.exchange.global.response.ApiResponse;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.json.JsonMapper;
@@ -35,6 +39,7 @@ public class SecurityConfig {
 		+ "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 
 	private final JsonMapper jsonMapper;
+	private final AuditService auditService;
 
 	/** Argon2id로 비밀번호를 해시한다. */
 	@Bean
@@ -51,6 +56,11 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/", "/index.html", "/favicon.svg", "/assets/**").permitAll()
 				.requestMatchers(HttpMethod.GET, PAGES).permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/v1/accounts/*/stock-deposits").hasRole("OPERATOR")
+				.requestMatchers("/api/v1/admin/audit/**").hasRole("AUDITOR")
+				.requestMatchers(HttpMethod.POST, "/api/v1/admin/adjustments").hasRole("OPERATOR")
+				.requestMatchers(HttpMethod.POST, "/api/v1/admin/adjustments/**").hasRole("APPROVER")
+				.requestMatchers(HttpMethod.GET, "/api/v1/admin/adjustments").hasAnyRole("OPERATOR", "APPROVER", "AUDITOR")
+				.requestMatchers("/api/v1/admin/**").denyAll()
 				.anyRequest().authenticated())
 			.csrf(csrf -> csrf.spa())
 			.headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(CSP)))
@@ -78,8 +88,20 @@ public class SecurityConfig {
 			// 기본 예외 처리는 본문 없이 응답하므로 공통 응답 형식으로 맞춘다.
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint((request, response, e) -> fail(response, ErrorCode.UNAUTHORIZED))
-				.accessDeniedHandler((request, response, e) -> fail(response, ErrorCode.FORBIDDEN)))
+				.accessDeniedHandler((request, response, e) -> {
+					recordDenied(request);
+					fail(response, ErrorCode.FORBIDDEN);
+				}))
 			.build();
+	}
+
+	/** 로그인한 사용자가 권한 없는 관리 기능을 시도하면 감사 로그에 남긴다. */
+	private void recordDenied(HttpServletRequest request) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication != null && authentication.getPrincipal() instanceof LoginUser
+				&& request.getRequestURI().startsWith("/api/v1/admin/")) {
+			auditService.recordFailure(request.getMethod() + " " + request.getRequestURI(), ErrorCode.FORBIDDEN.name());
+		}
 	}
 
 	/** 에러 코드를 공통 응답 형식으로 쓴다. */

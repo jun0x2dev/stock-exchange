@@ -13,7 +13,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
@@ -51,7 +54,7 @@ public abstract class IntegrationTest {
 	@Autowired
 	protected MockMvc mockMvc;
 
-	@Autowired
+	/** DB 소유자 연결. 애플리케이션 계정은 종목을 만들거나 잠금 시각을 바꿀 수 없다. */
 	protected JdbcTemplate jdbc;
 
 	@Autowired
@@ -74,6 +77,12 @@ public abstract class IntegrationTest {
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	/** DB 소유자 연결을 받는다. */
+	@Autowired
+	void setOwnerPool(@Qualifier("ownerPool") DataSource ownerPool) {
+		jdbc = new JdbcTemplate(ownerPool);
+	}
 
 	/** 테스트 사용자와 계좌. */
 	protected record Trader(long userId, long accountId, String loginId) {

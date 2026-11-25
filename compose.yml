@@ -58,6 +58,23 @@ services:
       timeout: 10s
       retries: 10
 
+  # 스키마 변경은 소유자 계정으로 한 번만 실행하고 끝난다. 계속 떠 있는 core에는 소유자 비밀번호를 주지 않는다.
+  migrate:
+    profiles: [app]
+    image: flyway/flyway:12.4.0-alpine
+    command: migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/exchange
+      FLYWAY_USER: exchange
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_PLACEHOLDERS_APPPASSWORD: ${EXCHANGE_DB_APP_PASSWORD:?.env 파일에 EXCHANGE_DB_APP_PASSWORD를 설정하세요}
+    volumes:
+      - ./backend/exchange-core/src/main/resources/db/migration:/flyway/sql:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+
   core:
     profiles: [app]
     build:
@@ -65,16 +82,21 @@ services:
       target: core
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/exchange
-      SPRING_DATASOURCE_USERNAME: exchange
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "false"
+      EXCHANGE_DB_APP_PASSWORD: ${EXCHANGE_DB_APP_PASSWORD:?.env 파일에 EXCHANGE_DB_APP_PASSWORD를 설정하세요}
+      EXCHANGE_AUDIT_KEY: ${EXCHANGE_AUDIT_KEY:?.env 파일에 EXCHANGE_AUDIT_KEY를 설정하세요}
+      EXCHANGE_AUDIT_ANCHOR_FILE: /var/lib/exchange/audit-anchor.log
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXCHANGE_DEMO_PASSWORD: ${EXCHANGE_DEMO_PASSWORD:-}
       EXCHANGE_BOT_ENABLED: "true"
     ports:
       # 다른 프로그램이 8080을 쓰면 .env의 CORE_PORT로 바꾼다.
       - "127.0.0.1:${CORE_PORT:-8080}:8080"
+    volumes:
+      # 감사 로그 체인의 마지막 값. DB 볼륨과 나눈다.
+      - audit-anchor:/var/lib/exchange
     depends_on:
-      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
       kafka: { condition: service_healthy }
     security_opt: ["no-new-privileges:true"]
     mem_limit: 512m
@@ -110,3 +132,4 @@ services:
 volumes:
   postgres-data:
   kafka-data:
+  audit-anchor:

@@ -5,6 +5,8 @@ import com.exchange.global.error.ErrorCode;
 
 import com.exchange.market.PricePolicy;
 
+import org.hibernate.annotations.DynamicUpdate;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -15,6 +17,8 @@ import lombok.NoArgsConstructor;
 
 /** 거래 종목. */
 @Entity
+// 앱 DB 계정은 바꿀 수 있는 컬럼만 UPDATE할 수 있으므로 바뀐 컬럼만 갱신한다.
+@DynamicUpdate
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Stock {

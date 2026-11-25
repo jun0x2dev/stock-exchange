@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import com.exchange.engine.Side;
 
+import org.hibernate.annotations.DynamicUpdate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,6 +22,8 @@ import lombok.NoArgsConstructor;
  * <p>상태 변경 메서드는 행을 잠그고 읽은 체결 반영에서만 쓴다.
  */
 @Entity
+// 앱 DB 계정은 바꿀 수 있는 컬럼만 UPDATE할 수 있으므로 바뀐 컬럼만 갱신한다.
+@DynamicUpdate
 @Getter
 @Table(name = "orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

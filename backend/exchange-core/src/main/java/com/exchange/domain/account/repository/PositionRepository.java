@@ -35,6 +35,20 @@ public interface PositionRepository extends JpaRepository<Position, PositionId> 
 		""")
 	int deposit(long accountId, String symbol, long quantity, long cost);
 
+	/**
+	 * 입고를 되돌린다. 주문에 묶이지 않은 수량이 충분할 때만 뺀다.
+	 *
+	 * <p>원가는 매도와 같이 평균으로 줄이고 원 미만을 버린다. 전량이면 남은 원가를 모두 뺀다.
+	 */
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query(nativeQuery = true, value = """
+		UPDATE position
+		   SET quantity = quantity - :quantity,
+		       total_cost = total_cost - CAST(div(CAST(total_cost AS numeric) * :quantity, quantity) AS bigint)
+		 WHERE account_id = :accountId AND symbol = :symbol AND quantity - reserved_quantity >= :quantity
+		""")
+	int withdraw(long accountId, String symbol, long quantity);
+
 	/** 팔 수 있는 수량이 충분할 때만 예약한다. */
 	@Modifying(flushAutomatically = true, clearAutomatically = true)
 	@Query("""

@@ -42,6 +42,14 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 		""")
 	int deposit(long accountId, long amount);
 
+	/** 입금을 되돌린다. 쓰지 않았고 주문에 묶이지 않은 금액이 충분할 때만 뺀다. */
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query("""
+		UPDATE Account a SET a.cashBalance = a.cashBalance - :amount
+		 WHERE a.accountId = :accountId AND a.cashBalance - a.reservedCash >= :amount
+		""")
+	int withdraw(long accountId, long amount);
+
 	/** 고객 계좌인지 확인한다. */
 	@Query("""
 		SELECT COUNT(a) > 0 FROM Account a WHERE a.accountId = :accountId

@@ -18,6 +18,8 @@ Thumbs.db
 .env
 .env.local
 application-local.yml
+# 감사 로그 체인의 마지막 값
+audit-anchor.log
 
 # Local-only docs
 CLAUDE.md

@@ -25,4 +25,10 @@ public interface AccountService {
 
 	/** 운영자가 고객 계좌에 모의 주식을 입고한다. */
 	DepositResponse depositStock(long accountId, String idempotencyKey, StockDepositRequest request);
+
+	/** 입금·입고 기록이 있는지 확인한다. */
+	void requireDeposit(long depositId);
+
+	/** 승인된 정정에 따라 입금·입고를 반대 전표로 되돌린다. 승인 트랜잭션 안에서만 부른다. */
+	void reverseDeposit(long depositId, long adjustmentId);
 }

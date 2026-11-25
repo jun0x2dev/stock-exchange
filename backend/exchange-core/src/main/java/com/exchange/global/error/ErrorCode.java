@@ -30,7 +30,14 @@ public enum ErrorCode {
 	PRICE_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_CONTENT, "상한가와 하한가 사이의 가격을 입력하세요."),
 
 	ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."),
-	ORDER_NOT_CANCELABLE(HttpStatus.CONFLICT, "이미 체결되었거나 취소된 주문입니다.");
+	ORDER_NOT_CANCELABLE(HttpStatus.CONFLICT, "이미 체결되었거나 취소된 주문입니다."),
+
+	DEPOSIT_NOT_FOUND(HttpStatus.NOT_FOUND, "입금·입고 기록을 찾을 수 없습니다."),
+	ADJUSTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "정정 요청을 찾을 수 없습니다."),
+	ADJUSTMENT_ALREADY_REQUESTED(HttpStatus.CONFLICT, "이미 정정을 요청했거나 정정한 전표입니다."),
+	ADJUSTMENT_ALREADY_DECIDED(HttpStatus.CONFLICT, "이미 승인하거나 거절한 요청입니다."),
+	ADJUSTMENT_SELF_DECISION(HttpStatus.FORBIDDEN, "본인이 요청한 정정은 승인하거나 거절할 수 없습니다."),
+	ADJUSTMENT_NOT_REVERSIBLE(HttpStatus.UNPROCESSABLE_CONTENT, "이미 썼거나 주문에 묶여 되돌릴 잔고가 부족합니다.");
 
 	private final HttpStatus status;
 	private final String message;

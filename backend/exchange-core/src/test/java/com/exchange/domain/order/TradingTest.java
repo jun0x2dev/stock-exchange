@@ -429,9 +429,10 @@ class TradingTest extends IntegrationTest {
 	@Test
 	@DisplayName("원장, 체결, 감사 로그는 DB에서 직접 수정하거나 지울 수 없다")
 	void ledgersAreAppendOnly() {
-		for (String table : List.of("cash_ledger", "position_ledger", "execution", "audit_log")) {
-			for (String sql : List.of("DELETE FROM " + table, "TRUNCATE " + table,
+		for (String table : List.of("cash_ledger", "position_ledger", "execution", "audit_log", "audit_chain")) {
+			for (String sql : List.of("DELETE FROM " + table, "TRUNCATE " + table + " CASCADE",
 				"UPDATE " + table + " SET " + (table.equals("audit_log") ? "result = 'x'"
+					: table.equals("audit_chain") ? "hash = 'x'"
 					: table.equals("execution") ? "price = 1" : "reserved_delta = 1"))) {
 				assertThatThrownBy(() -> jdbc.execute(sql)).hasMessageContaining("append-only");
 			}

@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.gradle \
     sh ./gradlew :exchange-core:bootJar :exchange-engine:installDist :exchange-feed:installDist --no-daemon --console=plain
 
 FROM eclipse-temurin:21-jre-alpine@sha256:5d7689f47d670aca766b9503a70bccc2d73b4eb9221ae8f714ae958313c4ce70 AS core
-RUN adduser -D -H app
+RUN adduser -D -H app && install -d -o app /var/lib/exchange
 USER app
 COPY --from=build /src/backend/exchange-core/build/libs/exchange-core-0.0.1-SNAPSHOT.jar /app/core.jar
 EXPOSE 8080
