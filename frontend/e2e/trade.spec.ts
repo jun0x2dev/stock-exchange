@@ -111,6 +111,26 @@ test('세션 쿠키는 스크립트에서 읽을 수 없고 브라우저 저장�
   expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0)
 })
 
+test('주문하면 조회를 기다리지 않고 실시간으로 호가 잔량이 바뀐다', async ({ page }) => {
+  // 첫 조회만 허용한다. 그 뒤의 변화는 실시간 연결로만 알 수 있다.
+  let polls = 0
+  await page.route('**/api/v1/orderbooks/**', (route) => (polls++ === 0 ? route.continue() : route.abort()))
+  await login(page)
+  await expect(page.getByText('실시간', { exact: true })).toBeVisible()
+  const bid = page.getByRole('list', { name: '구매 호가' }).getByRole('button').first()
+  const [, price, quantity] = (await bid.getAttribute('aria-label'))!.match(/^([\d,]+)원, 구매 잔량 ([\d,]+)주$/)!
+  const form = await openForm(page, '구매')
+  await form.getByLabel('가격', { exact: true }).fill(price!)
+  await form.getByLabel('수량', { exact: true }).fill('1')
+  await form.getByRole('button', { name: '구매하기' }).click()
+  await confirmation(page).getByRole('button', { name: '구매하기' }).click()
+  await expect(page.getByText('구매 주문을 접수했어요')).toBeVisible()
+  const grown = (Number(quantity!.replaceAll(',', '')) + 1).toLocaleString('ko-KR')
+  await expect(page.locator(`button[aria-label="${price}원, 구매 잔량 ${grown}주"]`)).toHaveCount(1)
+  await (await openTab(page, '대기 주문')).getByRole('button', { name: '취소' }).first().click()
+  await expect(page.locator(`button[aria-label="${price}원, 구매 잔량 ${quantity}주"]`)).toHaveCount(1)
+})
+
 test('로그아웃하면 계좌 화면에 들어갈 수 없다', async ({ page }) => {
   await login(page)
   await page.getByRole('button', { name: '로그아웃' }).click()

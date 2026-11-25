@@ -8,7 +8,12 @@
 .head h1 span { color: var(--ink-3); font-weight: 400; }
 .halted { margin-left: 8px; padding: 2px 8px; border-radius: 6px; background: var(--solid); color: var(--on-solid); font-size: 13px; }
 .price { font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
+.flash { animation: flash .5s ease-out; border-radius: 6px; }
+@keyframes flash { from { background: var(--line); } }
 .change { color: var(--ink-3); }
+.live { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-3); }
+.live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.live[data-live='true']::before { background: #18a058; }
 .change b { font-weight: 600; }
 .limits { display: flex; gap: 16px; margin-left: auto; font-size: 14px; }
 .limits div { display: flex; gap: 6px; }

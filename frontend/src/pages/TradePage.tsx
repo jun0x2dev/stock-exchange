@@ -7,7 +7,8 @@ import { PriceChart } from '../components/PriceChart'
 import { Watchlist } from '../components/Watchlist'
 import type { Side, Stock } from '../lib/api'
 import { num, percent, signed, trend } from '../lib/format'
-import { useAccount, usePositions, useStocks } from '../lib/queries'
+import { useAccount, usePositions, useStocks, useTrades } from '../lib/queries'
+import { useRealtime } from '../lib/realtime'
 import styles from './TradePage.module.css'
 
 /** 주소의 종목으로 거래 화면을 연다. 종목이 바뀌면 주문서를 새로 시작한다. */
@@ -22,7 +23,11 @@ export function TradePage() {
 }
 
 /** 시세, 호가, 주문서, 내 거래를 한 화면에 둔다. 좁은 화면에서는 탭과 아래쪽 주문 버튼으로 나눈다. */
-function Trade({ stock, stocks }: { stock: Stock; stocks: Stock[] }) {
+function Trade({ stock: listed, stocks }: { stock: Stock; stocks: Stock[] }) {
+  const live = useRealtime(listed.symbol)
+  // 종목 목록보다 먼저 도착하는 실시간 체결을 현재가로 쓴다.
+  const lastPrice = useTrades(listed.symbol).data?.[0]?.price ?? listed.lastPrice
+  const stock = { ...listed, lastPrice }
   const { account } = useAccount()
   const positions = usePositions(account?.accountId)
   const [side, setSide] = useState<Side>('BUY')
@@ -47,8 +52,9 @@ function Trade({ stock, stocks }: { stock: Stock; stocks: Stock[] }) {
       <div className={styles.watch}><Watchlist /></div>
       <div className={styles.head}>
         <h1>{stock.name} <span>{stock.symbol}</span>{stock.status === 'HALTED' && <strong className={styles.halted}>거래 정지</strong>}</h1>
-        <p className={styles.price}>{num(stock.lastPrice)}원</p>
+        <p className={styles.price}><span key={stock.lastPrice} className={styles.flash}>{num(stock.lastPrice)}원</span></p>
         <p className={styles.change}>기준가보다 <b className={trend(change)}>{signed(change)}원 ({percent(change, stock.basePrice)})</b></p>
+        <p className={styles.live} role="status" data-live={live}>{live ? '실시간' : '다시 연결하는 중'}</p>
         <dl className={styles.limits}>
           <div><dt>상한가</dt><dd className="up">{num(stock.upperLimit)}</dd></div>
           <div><dt>하한가</dt><dd className="down">{num(stock.lowerLimit)}</dd></div>

@@ -42,8 +42,23 @@ test('시연 녹화', async ({ page }) => {
   await page.getByLabel('비밀번호').fill(PASSWORD)
   await tap(page.getByRole('button', { name: '로그인' }), 1500, 1500)
 
+  caption = '봇이 모의 시세를 따라 호가를 냅니다'
+  await expect(page.getByText('실시간', { exact: true })).toBeVisible()
+  // 시세가 움직이는 모습을 담는다.
+  for (let i = 0; i < 9; i++) {
+    await page.waitForTimeout(1200)
+    await shot(650)
+  }
+  await page.getByRole('button', { name: '차트', exact: true }).click()
+  for (let i = 0; i < 4; i++) {
+    await page.waitForTimeout(1200)
+    await shot(650)
+  }
+  await page.getByRole('button', { name: '호가', exact: true }).click()
+
   caption = '호가를 누르면 그 가격이 주문서에 들어갑니다'
-  await tap(page.getByRole('list', { name: '판매 호가' }).getByRole('button').last())
+  // 시세가 움직여도 체결되도록 두세 호가 높게 산다. 실제로는 더 싼 호가부터 체결된다.
+  await tap(page.getByRole('list', { name: '판매 호가' }).getByRole('button').first())
   await tap(buy())
   caption = '수량을 고르고 주문 내용을 확인합니다'
   await tap(form().getByRole('button', { name: '10%' }))
