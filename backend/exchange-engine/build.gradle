@@ -1,0 +1,15 @@
+plugins {
+	id 'application'
+}
+
+dependencies {
+	implementation project(':matching')
+	implementation 'org.apache.kafka:kafka-clients'
+	implementation 'tools.jackson.core:jackson-databind'
+	implementation 'org.slf4j:slf4j-api'
+	runtimeOnly 'ch.qos.logback:logback-classic'
+}
+
+application {
+	mainClass = 'com.exchange.engine.app.EngineApplication'
+}

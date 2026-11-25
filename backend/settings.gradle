@@ -1,1 +1,3 @@
 rootProject.name = 'stock-exchange'
+
+include 'matching', 'exchange-engine', 'exchange-core'

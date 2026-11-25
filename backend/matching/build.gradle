@@ -1,0 +1,4 @@
+// 매칭 엔진. DB, Spring, Kafka에 의존하지 않는다.
+plugins {
+	id 'java-library'
+}

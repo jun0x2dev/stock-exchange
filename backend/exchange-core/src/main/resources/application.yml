@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: stock-exchange
+  config:
+    # 로컬 개발 값. git에 올리지 않는다.
+    import: optional:file:.env[.properties]
+  jackson:
+    deserialization:
+      # 1.5주를 1주로 잘라 접수하지 않는다.
+      accept-float-as-int: false
+    datatype:
+      enum:
+        # side: 1 같은 숫자를 순서로 해석해 매수·매도를 바꿔 접수하지 않는다.
+        fail-on-numbers-for-enums: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 스키마는 Flyway로만 변경하고, 엔티티와 어긋나면 기동에 실패한다.
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      # 엔진이 끝내지 못하고 취소한 결과는 읽지 않는다.
+      isolation-level: read_committed
+      properties:
+        # 죽은 뒤 다시 뜬 core가 이전 멤버의 만료(기본 45초)를 기다리지 않고 바로 이어받게 한다.
+        group.instance.id: exchange-core
+        session.timeout.ms: 10000
+    listener:
+      type: batch
+      ack-mode: batch
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
+      include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    # 연결할 때마다 전체 설정을 출력하는 것을 막는다.
+    org.apache.kafka: warn
+
+server:
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        secure: true
+        same-site: strict
+
+exchange:
+  demo:
+    # 값이 있을 때만 체험용 사용자와 호가를 만든다. 운영에서는 비워 둔다.
+    password: ${EXCHANGE_DEMO_PASSWORD:}

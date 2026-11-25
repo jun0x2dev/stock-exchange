@@ -1,0 +1,42 @@
+plugins {
+	id 'org.springframework.boot'
+}
+
+dependencies {
+	implementation project(':matching')
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
+	implementation 'org.springframework.boot:spring-boot-starter-kafka'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	// Argon2PasswordEncoder의 구현체
+	implementation 'org.bouncycastle:bcprov-jdk18on:1.87'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.projectlombok:lombok'
+	// 통합 테스트는 실제 엔진을 같은 프로세스에서 띄우고 멈춘다.
+	testImplementation project(':exchange-engine')
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	testImplementation 'org.testcontainers:testcontainers-kafka'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
+}
+
+tasks.named('bootRun') {
+	// 저장소 루트의 compose.yml과 .env를 찾도록 루트에서 실행한다.
+	workingDir = rootDir.parentFile
+}
+
+tasks.named('bootJar') {
+	// 화면을 빌드해 두면 같은 출처로 서비스하도록 jar에 넣는다.
+	from(rootDir.toPath().resolve('../frontend/dist').toFile()) {
+		into 'BOOT-INF/classes/static'
+	}
+}
