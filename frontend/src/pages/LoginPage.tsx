@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { api, ApiError } from '../lib/api'
 import styles from './LoginPage.module.css'
@@ -13,11 +13,6 @@ export function LoginPage() {
   const client = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
-
-  // 로그인 요청에도 CSRF 토큰이 필요하므로, 먼저 조회해서 토큰 쿠키를 받아 둔다.
-  useEffect(() => {
-    api.me().catch(() => {})
-  }, [])
 
   /** 로그인하고 원래 보려던 화면으로 돌아간다. */
   async function submit(event: FormEvent) {

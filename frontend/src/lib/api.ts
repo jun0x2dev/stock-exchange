@@ -54,10 +54,14 @@ function csrfToken(): string {
 /** 공통 응답 형식을 벗겨 데이터를 반환한다. 변경 요청에는 CSRF 토큰을 붙인다. */
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
-  if (init.method && init.method !== 'GET') headers.set('X-XSRF-TOKEN', csrfToken())
   let response: Response
   let body: { data: T; error: { code: string; message: string } | null }
   try {
+    if (init.method && init.method !== 'GET') {
+      // 첫 조회가 끝나기 전에 로그인하면 토큰이 아직 없으므로 먼저 받는다.
+      if (!csrfToken()) await fetch('/api/v1/auth/me', { credentials: 'same-origin' })
+      headers.set('X-XSRF-TOKEN', csrfToken())
+    }
     response = await fetch(`/api/v1${path}`, { ...init, headers, credentials: 'same-origin' })
     body = await response.json()
   } catch {
