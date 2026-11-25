@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -19,12 +20,19 @@ import com.exchange.IntegrationTest;
 import com.exchange.domain.account.dto.AccountResponse;
 import com.exchange.domain.account.dto.DepositRequest;
 import com.exchange.domain.account.dto.PositionResponse;
+import com.exchange.domain.audit.entity.AuditLog;
+import com.exchange.domain.execution.entity.Execution;
+import com.exchange.domain.ledger.entity.CashLedger;
+import com.exchange.domain.ledger.entity.PositionLedger;
 import com.exchange.domain.order.dto.OrderResponse;
 import com.exchange.domain.order.entity.OrderStatus;
+import com.exchange.domain.outbox.entity.Outbox;
 import com.exchange.engine.BookSnapshot;
 import com.exchange.engine.Side;
 import com.exchange.global.error.BusinessException;
 import com.exchange.global.error.ErrorCode;
+
+import jakarta.persistence.Column;
 
 /** 주문 접수부터 체결·원장까지의 정합성, 동시성, 복구를 검증한다. */
 class TradingTest extends IntegrationTest {
@@ -401,24 +409,21 @@ class TradingTest extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("주문, 체결, 원장, 감사 로그의 시각은 모두 DB 시계로 남아 전후 관계가 뒤집히지 않는다")
-	void timestampsUseDatabaseClock() {
-		String symbol = stock();
-		Trader seller = trader(0);
-		giveStock(seller, symbol, 1);
-		Trader buyer = trader(1_000_000);
-		place(seller, symbol, Side.SELL, 71_000, 1);
-		OrderResponse buy = place(buyer, symbol, Side.BUY, 71_000, 1);
-		awaitProcessed(symbol);
-		assertThat(jdbc.queryForObject("""
-			SELECT o.created_at <= e.executed_at AND e.executed_at <= l.created_at AND e.executed_at <= o.updated_at
-			       AND l.created_at <= clock_timestamp() AND o.updated_at <= clock_timestamp()
-			  FROM orders o JOIN execution e ON e.buy_order_id = o.order_id
-			  JOIN cash_ledger l ON l.type = 'BUY' AND l.ref_type = 'EXECUTION' AND l.ref_id = e.execution_id
-			 WHERE o.order_id = ?
-			""", Boolean.class, buy.orderId())).isTrue();
-		assertThat(jdbc.queryForObject("SELECT max(created_at) <= clock_timestamp() FROM audit_log", Boolean.class))
-			.isTrue();
+	@DisplayName("주문, 체결, 원장, 감사 로그의 시각은 앱이 아니라 DB가 채운다")
+	void timestampsComeFromDatabase() {
+		// 시계가 뒤로 보정될 수 있어 시각의 크기를 비교하지 않고, 값을 채우는 주체를 확인한다.
+		for (String column : List.of("orders.created_at", "execution.executed_at", "cash_ledger.created_at",
+			"position_ledger.created_at", "audit_log.created_at", "outbox.created_at")) {
+			String[] parts = column.split("\\.");
+			assertThat(jdbc.queryForObject("SELECT column_default FROM information_schema.columns "
+				+ "WHERE table_name = ? AND column_name = ?", String.class, parts[0], parts[1]))
+				.as(column).startsWith("clock_timestamp()");
+		}
+		for (Class<?> entity : List.of(Execution.class, CashLedger.class, PositionLedger.class, AuditLog.class, Outbox.class)) {
+			assertThat(Arrays.stream(entity.getDeclaredFields())
+				.filter(f -> f.getName().equals("createdAt") || f.getName().equals("executedAt"))
+				.map(f -> f.getAnnotation(Column.class).insertable())).as(entity.getSimpleName()).containsExactly(false);
+		}
 	}
 
 	@Test

@@ -19,6 +19,9 @@ public class KafkaConfig {
 	/** 엔진의 처리 결과. 키는 종목이다. */
 	public static final String RESULTS = "engine-event";
 
+	/** 참고 시세. 키는 종목이다. */
+	public static final String QUOTES = "quote";
+
 	private static final int PARTITIONS = 3;
 
 	/** 엔진이 처음부터 다시 읽어 호가창을 되살리므로 지우지 않는다. */
@@ -31,6 +34,13 @@ public class KafkaConfig {
 	@Bean
 	NewTopic resultTopic() {
 		return topic(RESULTS);
+	}
+
+	/** 최신 시세만 쓰므로 한 시간만 보존한다. */
+	@Bean
+	NewTopic quoteTopic() {
+		return TopicBuilder.name(QUOTES).partitions(1).replicas(1)
+			.config(TopicConfig.RETENTION_MS_CONFIG, "3600000").build();
 	}
 
 	/** 정해진 횟수를 넘겼다고 이벤트를 건너뛰면 잔고가 틀어지므로 성공할 때까지 다시 시도한다. */

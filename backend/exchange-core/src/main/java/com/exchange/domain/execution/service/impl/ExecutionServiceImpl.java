@@ -8,6 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import com.exchange.domain.execution.entity.Execution;
 import com.exchange.domain.execution.exception.EngineMismatchException;
 import com.exchange.domain.execution.repository.ExecutionRepository;
 import com.exchange.domain.execution.service.ExecutionService;
+import com.exchange.domain.execution.service.Settled;
 import com.exchange.domain.ledger.entity.LedgerRef;
 import com.exchange.domain.ledger.entity.LedgerType;
 import com.exchange.domain.ledger.entity.RefType;
@@ -55,6 +57,7 @@ public class ExecutionServiceImpl implements ExecutionService {
 	private final StockRepository stockRepository;
 	private final LedgerService ledgerService;
 	private final AccountAccess accountAccess;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Override
 	@Transactional
@@ -85,6 +88,8 @@ public class ExecutionServiceImpl implements ExecutionService {
 		if (stockRepository.advanceEventSeq(symbol, applied, expected) != 1) {
 			throw new IllegalStateException("이벤트가 동시에 반영됨: symbol=" + symbol);
 		}
+		eventPublisher.publishEvent(new Settled(symbol,
+			locked.accounts().values().stream().map(Account::getUserId).collect(Collectors.toSet())));
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package com.exchange.domain.stock.entity;
+package com.exchange.market;
 
 /**
  * 호가 단위와 가격제한폭.
@@ -34,6 +34,16 @@ public final class PricePolicy {
 	/** 호가 단위에 맞는 가격인지 확인한다. */
 	public static boolean isOnTick(long price) {
 		return price % tickSize(price) == 0;
+	}
+
+	/** 한 호가 위의 가격. */
+	public static long above(long price) {
+		return price + tickSize(price);
+	}
+
+	/** 한 호가 아래의 가격. 가격대 경계에서는 아래쪽 호가 단위를 쓴다. */
+	public static long below(long price) {
+		return price - tickSize(price - 1);
 	}
 
 	/** 상한가. */

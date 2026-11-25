@@ -29,6 +29,12 @@ subprojects {
 		imports {
 			mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
 		}
+		// kafka-clients가 가져오는 버전의 취약점(CVE-2026-106451, CVE-2026-108106, CVE-2026-93451)을 고친 버전.
+		// Spring Boot가 이보다 높은 버전을 쓰면 지운다.
+		dependencies {
+			dependency 'at.yawk.lz4:lz4-java:1.11.4'
+			dependency 'org.xerial.snappy:snappy-java:1.1.10.9'
+		}
 	}
 
 	dependencies {

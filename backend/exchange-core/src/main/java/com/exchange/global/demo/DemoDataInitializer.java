@@ -18,7 +18,7 @@ import com.exchange.domain.order.dto.PlaceOrderRequest;
 import com.exchange.domain.order.entity.OrderType;
 import com.exchange.domain.order.service.OrderService;
 import com.exchange.domain.stock.dto.StockResponse;
-import com.exchange.domain.stock.entity.PricePolicy;
+import com.exchange.market.PricePolicy;
 import com.exchange.domain.stock.service.StockService;
 import com.exchange.domain.user.entity.Role;
 import com.exchange.domain.user.entity.User;

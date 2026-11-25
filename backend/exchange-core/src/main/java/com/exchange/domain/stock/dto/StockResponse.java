@@ -1,6 +1,6 @@
 package com.exchange.domain.stock.dto;
 
-import com.exchange.domain.stock.entity.PricePolicy;
+import com.exchange.market.PricePolicy;
 import com.exchange.domain.stock.entity.StockStatus;
 import com.exchange.domain.stock.repository.StockRepository.StockPrice;
 

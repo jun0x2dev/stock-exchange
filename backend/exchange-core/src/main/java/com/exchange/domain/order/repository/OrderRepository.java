@@ -80,6 +80,16 @@ public interface OrderRepository extends Repository<Order, Long> {
 		""")
 	List<PriceLevel> findAsks(String symbol, int depth);
 
+	/** 계좌가 종목에 낸 주문 중 아직 취소를 요청하지 않은 것. */
+	@Query("""
+		SELECT o FROM Order o WHERE o.accountId = :accountId AND o.symbol = :symbol AND o.cancelRequestedAt IS NULL
+		   AND o.status IN (com.exchange.domain.order.entity.OrderStatus.ACCEPTED,
+		                    com.exchange.domain.order.entity.OrderStatus.OPEN,
+		                    com.exchange.domain.order.entity.OrderStatus.PARTIALLY_FILLED)
+		 ORDER BY o.orderId
+		""")
+	List<Order> findCancelable(long accountId, String symbol);
+
 	/** 엔진이 이 순번으로 접수한 주문인지 확인한다. */
 	boolean existsByOrderIdAndEngineSeq(long orderId, long engineSeq);
 

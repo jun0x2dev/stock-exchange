@@ -11,5 +11,6 @@
 ## 해결
 
 - 모든 시각을 DB의 `clock_timestamp()`로 남긴다(V4, 엔티티는 `insertable = false`). 주문의 `updated_at`은 트리거가 바꾼다.
-- 재발 방지: `TradingTest.timestampsUseDatabaseClock`
+- 재발 방지: `TradingTest.timestampsComeFromDatabase`
+- 2026-11-25: WSL 시계가 뒤로 보정되면 DB 시계만 써도 앞선 기록의 시각이 더 클 수 있다. 시각을 비교하던 테스트가 이 때문에 실패해, 값을 DB가 채우는지만 확인하게 바꿨다. 기록의 순서는 시각이 아니라 `engine_seq`, `event_seq`, 원장 번호로 판단한다.
 - 명령 순서와 시간 우선은 원래 DB 시각과 엔진 순번만 썼으므로 영향을 받지 않았다.

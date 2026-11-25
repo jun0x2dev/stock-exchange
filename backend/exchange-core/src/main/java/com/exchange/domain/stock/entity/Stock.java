@@ -3,6 +3,8 @@ package com.exchange.domain.stock.entity;
 import com.exchange.domain.stock.exception.StockException;
 import com.exchange.global.error.ErrorCode;
 
+import com.exchange.market.PricePolicy;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;

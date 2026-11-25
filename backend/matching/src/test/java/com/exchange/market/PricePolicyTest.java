@@ -1,4 +1,4 @@
-package com.exchange.domain.stock.entity;
+package com.exchange.market;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,6 +31,15 @@ class PricePolicyTest {
 		for (long base = 1; base < 700_000; base += PricePolicy.tickSize(base)) {
 			assertThat(PricePolicy.isOnTick(PricePolicy.upperLimit(base))).isTrue();
 			assertThat(PricePolicy.isOnTick(PricePolicy.lowerLimit(base))).isTrue();
+		}
+	}
+
+	@Test
+	@DisplayName("호가를 한 칸 올렸다 내리면 제자리로 돌아온다")
+	void aboveAndBelowAreInverse() {
+		for (long price = 1_000; price < 700_000; price += PricePolicy.tickSize(price)) {
+			assertThat(PricePolicy.below(PricePolicy.above(price))).isEqualTo(price);
+			assertThat(PricePolicy.isOnTick(PricePolicy.above(price))).isTrue();
 		}
 	}
 }
