@@ -3,7 +3,7 @@
 주문을 받아 자체 매칭 엔진으로 체결하고, 복식부기 원장에 기록하는 미니 증권사 + 거래소입니다.
 돈과 주식이 **유실되거나 중복되지 않게** 처리하고, 그것을 테스트와 대사로 **증명하는 것**이 목표입니다.
 
-> **현재 상태: 1단계 기능을 구현하고 검증했습니다.** 성능 목표는 아직 달성하지 못했습니다([원인 측정](docs/experiments/2026-11-24-order-latency-cause.md)). 2단계 이후는 설계이며 [진행 단계](#진행-단계)에 구현 현황을 표시합니다.
+> **현재 상태: 1단계를 마치고 2단계의 엔진 분리(Kafka·Outbox)까지 구현하고 검증했습니다.** 성능 목표는 아직 달성하지 못했습니다([원인 측정](docs/experiments/2026-11-24-order-latency-cause.md)). 나머지는 설계이며 [진행 단계](#진행-단계)에 구현 현황을 표시합니다.
 
 ## 시연
 
@@ -43,13 +43,13 @@
 | 한 계좌가 여러 종목을 동시에 주문하면 예수금이 초과 사용될 수 있다 | 조건부 UPDATE로 확인과 예약을 한 번에 처리하고, DB `CHECK` 제약으로 이중 방어 |
 | 같은 종목의 주문 순서가 뒤바뀔 수 있다 | 종목별 단일 스레드로 처리해 호가창에 락을 쓰지 않고 가격·시간 우선을 보장 |
 | 같은 주문이나 체결이 두 번 처리될 수 있다 | 주문은 계좌별 멱등키, 체결은 엔진이 부여한 종목별 순번으로 중복 제거 |
-| 주문을 저장한 직후 서버가 죽을 수 있다 | 커밋 후 엔진에 전달하고, 재시작하면 DB에서 호가창을 복원하고 미전달 주문을 다시 전달 |
+| 주문을 저장한 직후 서버가 죽을 수 있다 | 주문과 엔진에 보낼 명령을 한 트랜잭션으로 저장(Outbox)하고, 엔진은 명령 기록을 처음부터 다시 처리해 호가창을 복원 |
 | 잔고가 틀려도 알아채지 못할 수 있다 | INSERT 전용 복식부기 원장을 기록하고, 잔고와 일치하는지 SQL로 대사 |
 | 다른 사람의 계좌에 접근하거나 요청을 위조·재전송할 수 있다 | 소유자 검증, HMAC 서명, nonce, 감사 로그 해시 체인 |
 
 ## 아키텍처
 
-### 1단계: 단일 애플리케이션
+### 1단계: 단일 애플리케이션 (구현했던 구조)
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,7 @@ flowchart LR
     Settle -->|체결·잔고·원장| DB
 ```
 
-### 2단계: 엔진 분리
+### 2단계: 엔진 분리 (현재 구조, `exchange-feed`는 예정)
 
 ```mermaid
 flowchart LR
@@ -84,15 +84,15 @@ flowchart LR
    │
    ├─ 인증, 계좌 소유자, 호가 단위, 상·하한가 검증
    │
-   ├─ [트랜잭션] 예약 + 주문 저장 + 원장 기록  ──▶ ACCEPTED
+   ├─ [트랜잭션] 예약 + 주문 저장 + 원장 기록 + 명령 저장(Outbox)  ──▶ ACCEPTED
    │
-   ├─ 커밋 후 엔진 전달 ──▶ 가격·시간 우선 매칭  ──▶ OPEN / PARTIALLY_FILLED / FILLED
+   ├─ Outbox 발행 ──▶ Kafka ──▶ 엔진이 가격·시간 우선 매칭 ──▶ Kafka
    │
-   └─ [트랜잭션] 체결 + 주문 상태 + 잔고 + 원장 반영
+   └─ [트랜잭션] 체결 + 주문 상태 + 잔고 + 원장 반영  ──▶ OPEN / PARTIALLY_FILLED / FILLED
           잠금 순서: 계좌(ID 순) → 보유 종목 → 주문
 ```
 
-취소도 같은 엔진 큐를 거칩니다. 취소와 체결이 겹치면 엔진에 먼저 도착한 쪽이 처리됩니다.
+취소도 같은 명령 토픽을 거칩니다. 취소와 체결이 겹치면 엔진에 먼저 도착한 쪽이 처리됩니다.
 
 ## 항상 지켜야 하는 조건
 
@@ -134,7 +134,8 @@ flowchart LR
 
 | 항목 | 결과 |
 |---|---|
-| 부하 중 강제 종료 6회 | 접수 응답한 1,315건 중 유실 **0건**, 불변식 위반 **0건**, 재시작 후 20초 안에 밀린 주문·취소를 모두 처리 ([묶음 커밋 전](docs/experiments/2026-11-24-kill-under-load.md), [후](docs/experiments/2026-11-25-kill-under-load-batched.md)) |
+| 엔진 분리 후 강제 종료 9회 (core 4, 엔진 2, Kafka 2, DB 1) | 접수 응답한 3,342건 중 유실 **0건**, 불변식 위반 **0건**, 재기동 후 30초 안에 모두 처리(개선 후 기준) ([기록](docs/experiments/2026-11-25-kill-each-process.md)) |
+| 엔진 분리 전 강제 종료 6회 | 접수 응답한 1,315건 중 유실 **0건**, 불변식 위반 **0건**, 재시작 후 20초 안에 밀린 주문·취소를 모두 처리 ([묶음 커밋 전](docs/experiments/2026-11-24-kill-under-load.md), [후](docs/experiments/2026-11-25-kill-under-load-batched.md)) |
 | 동시성 테스트 | 같은 계좌 동시 주문 40건, 같은 멱등키 동시 요청 20건, 취소·체결 경합 30회에서 불변식 위반 0건 |
 | 주문 접수 지연 (초당 40건, HDD) | 계좌 30개 분산 p99 484ms, 3개 집중 p99 1,502ms. **목표 100ms 미달** ([기록](docs/experiments/2026-11-24-order-latency-cause.md)) |
 | 지연 원인 | 커밋마다 일어나는 디스크 동기화(1회 44ms). 진단용으로 동기화를 끄면 같은 부하에서 p99 13ms 이하 |
@@ -157,8 +158,8 @@ flowchart LR
 
 ### 2단계: 이벤트 기반 분리
 
-- [ ] Kafka, Outbox, 엔진 분리
-- [ ] 리플레이, 이벤트 중복·누락 처리
+- [x] Kafka, Outbox, 엔진 분리
+- [x] 리플레이, 이벤트 중복·누락 처리
 - [ ] 시장가, 정정, 수수료·거래세
 - [ ] 시세 수집, WebSocket, 호가 공급 봇
 - [ ] 실시간 호가·체결 화면
@@ -184,7 +185,7 @@ flowchart LR
 | Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA |
 | Frontend | React, Vite, TypeScript, TanStack Query |
 | Database | PostgreSQL, Flyway |
-| Messaging | Kafka (2단계) |
+| Messaging | Kafka |
 | Test | JUnit 5, Testcontainers, k6, Playwright |
 | Security | gitleaks, Semgrep, Trivy, OWASP ZAP (3단계) |
 | Infra | Docker Compose, GitHub Actions, Prometheus·Grafana (3단계) |
@@ -192,24 +193,43 @@ flowchart LR
 ## 저장소 구조
 
 ```
-backend/     Spring Boot
+backend/
+  matching/          매칭 엔진 라이브러리 (순수 Java)
+  exchange-engine/   매칭 엔진 프로세스 (Kafka만 사용)
+  exchange-core/     주문·계좌·원장 API 서버 (Spring Boot)
 frontend/    React
 docs/        설계 결정, 트러블슈팅, 실험 기록
-compose.yml  로컬 개발용 PostgreSQL
+compose.yml  로컬 개발용 PostgreSQL, Kafka
 ```
 
 백엔드와 프론트엔드는 같은 저장소에서 폴더로 나누고, 같은 출처로 서비스합니다.
 
 ## 로컬 실행
 
-JDK 21, Node.js 22.12 이상, Docker가 필요합니다.
+### Docker로 한 번에 띄우기
+
+Docker만 있으면 됩니다. `.env`에 두 값을 채우고 저장소 루트에서 실행합니다.
 
 ```bash
-cp .env.example .env   # POSTGRES_PASSWORD 값을 채운다
-cd backend
-./gradlew bootRun      # PostgreSQL 컨테이너를 함께 띄운다 (localhost:5433)
-./gradlew build        # 테스트 (Testcontainers)
+cp .env.example .env                  # POSTGRES_PASSWORD, EXCHANGE_DEMO_PASSWORD 값을 채운다
+docker compose --profile app up --build
 ```
+
+http://localhost:8080 에서 `demo`로 로그인합니다. 처음에는 이미지를 만드느라 몇 분 걸립니다.
+
+### 개발 환경에서 띄우기
+
+실행하는 프로그램은 API 서버(core), 매칭 엔진, 화면 세 개입니다. 터미널을 나눠 순서대로 띄웁니다. JDK 21, Node.js 22.12 이상, Docker가 필요합니다.
+
+```bash
+cp .env.example .env                  # POSTGRES_PASSWORD 값을 채운다
+cd backend
+./gradlew :exchange-core:bootRun      # PostgreSQL(5433)과 Kafka(9094) 컨테이너를 함께 띄운다
+./gradlew :exchange-engine:run        # 다른 터미널에서. core가 먼저 떠 있어야 한다
+./gradlew build                       # 테스트 (Testcontainers)
+```
+
+DB와 Kafka 데이터는 짝이 맞아야 하므로 초기화할 때는 저장소 루트에서 `docker compose down -v`로 함께 지웁니다.
 
 `.env`에 `EXCHANGE_DEMO_PASSWORD`를 채우면 체험용 사용자(`demo`)와 호가가 만들어집니다. 다른 터미널에서 화면을 띄웁니다.
 
@@ -222,7 +242,7 @@ npm run e2e            # Playwright 헤드리스 (EXCHANGE_DEMO_PASSWORD 환경�
 
 시연 GIF를 다시 만들 때는 `DEMO=1 npx playwright test demo --project=mobile` 후 `python3 e2e/make-demo-gif.py <한글 글꼴 경로>`를 실행합니다(Pillow 필요).
 
-`npm run build` 후 `./gradlew bootJar`를 실행하면 화면이 jar에 포함되어 같은 출처로 서비스됩니다.
+`npm run build` 후 `./gradlew :exchange-core:bootJar`를 실행하면 화면이 jar에 포함되어 같은 출처로 서비스됩니다.
 
 ## 범위와 주의 사항
 
