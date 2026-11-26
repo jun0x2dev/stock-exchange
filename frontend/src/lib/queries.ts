@@ -52,3 +52,23 @@ export const useLedgers = (accountId: number | undefined) =>
     getNextPageParam: (page) => page.nextCursor,
     enabled: accountId !== undefined,
   })
+
+/** 모든 고객의 입금·입고. 운영자용이다. */
+export const useDeposits = () =>
+  useInfiniteQuery({
+    queryKey: ['deposits'],
+    queryFn: ({ pageParam }) => api.deposits(pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (page) => page.nextCursor,
+  })
+
+/** 원장 정정 요청. */
+export const useAdjustments = () =>
+  useInfiniteQuery({
+    queryKey: ['adjustments'],
+    queryFn: ({ pageParam }) => api.adjustments(pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (page) => page.nextCursor,
+    // 다른 직원의 요청과 결정이 보이도록 다시 읽는다.
+    refetchInterval: 5_000,
+  })

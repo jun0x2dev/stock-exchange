@@ -1,0 +1,37 @@
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: 760px; margin: 0 auto; padding: 8px 20px 32px; }
+.summary { padding: 8px 4px 12px; }
+.summary h1 { font-size: 24px; font-weight: 700; }
+.summary h1 span { margin-left: 6px; font-size: 15px; font-weight: 500; color: var(--ink-3); }
+.summary p { color: var(--ink-2); }
+.section { display: flex; flex-direction: column; gap: 8px; padding: 16px; overflow: hidden; }
+.section h2 { font-size: 16px; }
+.rows { max-height: 560px; overflow-y: auto; }
+.rows li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.main { display: flex; flex-direction: column; min-width: 0; }
+.main b { font-weight: 600; }
+.main small { font-size: 13px; color: var(--ink-3); }
+.reason { color: var(--ink-2); overflow-wrap: anywhere; }
+.buttons { display: flex; gap: 6px; flex-shrink: 0; }
+.status { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; background: var(--sunken); color: var(--ink-2); }
+.REQUESTED { background: var(--solid); color: var(--on-solid); }
+.REJECTED { color: var(--ink-3); }
+.note { font-size: 14px; color: var(--ink-3); }
+.valid, .invalid { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--sunken); }
+.valid b, .invalid b { font-size: 16px; }
+.invalid { border: 2px solid var(--ink); }
+.invalid ul { list-style: disc; padding-left: 20px; }
+.error { padding: 10px 12px; border-radius: 10px; background: var(--sunken); font-size: 14px; }
+.dialog { width: min(380px, calc(100vw - 32px)); border-radius: 20px; }
+.dialog > form, .dialog > div { display: flex; flex-direction: column; gap: 14px; padding: 24px 20px 20px; }
+.dialog h3 { font-size: 19px; line-height: 1.4; }
+.dialog label { font-weight: 600; font-size: 14px; margin-bottom: -8px; }
+.facts { display: grid; gap: 6px; padding: 12px; border-radius: 12px; background: var(--sunken); }
+.facts div { display: flex; justify-content: space-between; gap: 12px; }
+.facts dt { color: var(--ink-3); flex-shrink: 0; }
+.facts dd { text-align: right; overflow-wrap: anywhere; }
+.actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.actions button { min-height: 52px; border-radius: 14px; }
+@media (max-width: 767px) {
+  .page { padding: 8px 16px 32px; }
+  .rows li { align-items: flex-start; }
+}

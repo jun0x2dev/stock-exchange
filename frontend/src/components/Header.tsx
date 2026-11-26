@@ -29,8 +29,12 @@ export function Header({ me }: { me: Me }) {
         모의거래
       </Link>
       <nav className={styles.nav}>
-        <NavLink to="/stocks" className={({ isActive }) => (isActive ? styles.current : undefined)}>거래</NavLink>
-        <NavLink to="/account" className={({ isActive }) => (isActive ? styles.current : undefined)}>내 자산</NavLink>
+        {me.role === 'CUSTOMER' ? (
+          <>
+            <NavLink to="/stocks" className={({ isActive }) => (isActive ? styles.current : undefined)}>거래</NavLink>
+            <NavLink to="/account" className={({ isActive }) => (isActive ? styles.current : undefined)}>내 자산</NavLink>
+          </>
+        ) : <NavLink to="/admin" className={({ isActive }) => (isActive ? styles.current : undefined)}>운영</NavLink>}
       </nav>
       <span className={styles.user}>{me.loginId}</span>
       <button type="button" className="soft-button" onClick={logout}>로그아웃</button>

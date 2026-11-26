@@ -4,6 +4,7 @@ import { ToastProvider } from './components/Toast'
 import { ApiError } from './lib/api'
 import { useMe, useStocks } from './lib/queries'
 import { AccountPage } from './pages/AccountPage'
+import { AdminPage } from './pages/AdminPage'
 import { LoginPage } from './pages/LoginPage'
 import { TradePage } from './pages/TradePage'
 
@@ -16,6 +17,7 @@ export function App() {
         <Route element={<RequireLogin />}>
           <Route path="/stocks/:symbol" element={<TradePage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<FirstStock />} />
         </Route>
       </Routes>
@@ -41,9 +43,11 @@ function RequireLogin() {
   )
 }
 
-/** 첫 종목의 거래 화면으로 보낸다. */
+/** 직원은 운영 화면으로, 고객은 첫 종목의 거래 화면으로 보낸다. */
 function FirstStock() {
+  const me = useMe()
   const stocks = useStocks()
   const first = stocks.data?.[0]
+  if (me.data && me.data.role !== 'CUSTOMER') return <Navigate to="/admin" replace />
   return first ? <Navigate to={`/stocks/${first.symbol}`} replace /> : <p className="empty">종목을 불러오는 중이에요.</p>
 }

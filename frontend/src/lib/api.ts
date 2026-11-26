@@ -1,7 +1,8 @@
 export type Side = 'BUY' | 'SELL'
 export type OrderStatus = 'ACCEPTED' | 'OPEN' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELED'
 
-export interface Me { loginId: string; role: 'CUSTOMER' | 'OPERATOR' | 'APPROVER' | 'AUDITOR' }
+export type Role = 'CUSTOMER' | 'OPERATOR' | 'APPROVER' | 'AUDITOR'
+export interface Me { loginId: string; role: Role }
 export interface Stock {
   symbol: string; name: string; status: 'TRADABLE' | 'HALTED'
   basePrice: number; lastPrice: number; upperLimit: number; lowerLimit: number
@@ -25,6 +26,14 @@ export interface Ledger {
   ledgerId: number; type: 'DEPOSIT' | 'RESERVE' | 'RELEASE' | 'BUY' | 'SELL' | 'REVERSAL'
   cashDelta: number; reservedDelta: number; createdAt: string
 }
+/** 입금·입고 한 건. symbol이 있으면 amount는 수량이다. */
+export interface Deposit { depositId: number; accountId: number; owner: string; symbol: string | null; amount: number; createdAt: string }
+export type AdjustmentStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED'
+export interface Adjustment {
+  adjustmentId: number; depositId: number; accountId: number; owner: string; symbol: string | null; amount: number
+  reason: string; status: AdjustmentStatus; requester: string; decider: string | null; createdAt: string; decidedAt: string | null
+}
+export interface AuditVerification { valid: boolean; checked: number; anchors: number; problems: string[] }
 export interface Page<T> { items: T[]; nextCursor: number | null }
 export interface PlaceOrder {
   accountId: number; symbol: string; side: Side; orderType: 'LIMIT'; price: number; quantity: number
@@ -98,6 +107,16 @@ export const api = {
   executions: (accountId: number) => request<Page<Execution>>(`/executions?accountId=${accountId}&size=50`),
   placeOrder: (key: string, body: PlaceOrder) => post<Order>('/orders', key, body),
   cancelOrder: (orderId: number) => request<Order>(`/orders/${orderId}`, { method: 'DELETE' }),
+  deposits: (cursor: number | null) => request<Page<Deposit>>(`/admin/deposits${cursor ? `?cursor=${cursor}` : ''}`),
+  adjustments: (cursor: number | null) =>
+    request<Page<Adjustment>>(`/admin/adjustments${cursor ? `?cursor=${cursor}` : ''}`),
+  requestAdjustment: (depositId: number, reason: string) =>
+    request<Adjustment>('/admin/adjustments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ depositId, reason }),
+    }),
+  decideAdjustment: (adjustmentId: number, approve: boolean) =>
+    request<Adjustment>(`/admin/adjustments/${adjustmentId}/${approve ? 'approval' : 'rejection'}`, { method: 'POST' }),
+  verifyAudit: () => request<AuditVerification>('/admin/audit/verification'),
   deposit: (key: string, accountId: number, amount: number) =>
     post<{ depositId: number }>(`/accounts/${accountId}/deposits`, key, { amount }),
 }

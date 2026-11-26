@@ -46,6 +46,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.goto('/account')
     await expect(page.getByRole('heading', { name: '총자산' })).toBeVisible()
     await capture('8-account')
+
+    // 직원 화면. 결정 창은 열기만 하고 보내지 않는다.
+    for (const [loginId, name] of [['operator', '9-admin-operator'], ['approver', '10-admin-approver'], ['auditor', '11-admin-auditor']]) {
+      await page.getByRole('button', { name: '로그아웃' }).click()
+      await page.getByLabel('아이디').fill(loginId!)
+      await page.getByLabel('비밀번호').fill(PASSWORD)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin$/)
+      if (loginId === 'auditor') {
+        await page.getByRole('button', { name: '지금 검증하기' }).click()
+        await expect(page.getByText('이상 없음')).toBeVisible()
+      }
+      await capture(name!)
+    }
     expect(errors).toEqual([])
   })
 }

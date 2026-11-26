@@ -1,4 +1,7 @@
-"""시연 프레임에 자막과 누른 위치를 그려 docs/demo.gif로 만든다. Pillow와 한글 글꼴 경로가 필요하다."""
+"""시연 프레임에 자막과 누른 위치를 그려 docs/{이름}.gif로 만든다. Pillow와 한글 글꼴 경로가 필요하다.
+
+실행: python3 e2e/make-demo-gif.py <글꼴 경로> [demo | admin-demo]
+"""
 import json
 import sys
 from pathlib import Path
@@ -6,7 +9,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / 'screenshots' / 'demo'
+NAME = sys.argv[2] if len(sys.argv) > 2 else 'demo'
+SRC = ROOT / 'screenshots' / NAME
 BAR = 52
 WIDTH = 360
 
@@ -33,6 +37,6 @@ for i, image in enumerate(images):
     sheet.paste(image, (0, i * images[0].height))
 palette = sheet.quantize(128, method=Image.Quantize.MEDIANCUT)
 frames = [image.quantize(palette=palette, dither=Image.Dither.NONE) for image in images]
-out = ROOT / 'docs' / 'demo.gif'
+out = ROOT / 'docs' / f'{NAME}.gif'
 frames[0].save(out, save_all=True, append_images=frames[1:], duration=durations, loop=0, optimize=True)
 print(out, f'{out.stat().st_size // 1024}KB', f'{len(frames)} frames', f'{sum(durations) / 1000:.1f}s')
