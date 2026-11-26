@@ -62,6 +62,8 @@ class DatabaseRoleTest extends IntegrationTest {
 		"UPDATE users SET role = 'APPROVER'", "UPDATE users SET password_hash = ''",
 		"UPDATE stock SET base_price = 1", "INSERT INTO stock (symbol, name, base_price) VALUES ('HACK', 'HACK', 1)",
 		"UPDATE ledger_adjustment SET requested_by = 1", "DELETE FROM ledger_adjustment",
+		"UPDATE reconciliation_run SET status = 'PASSED'", "DELETE FROM reconciliation_run",
+		"DELETE FROM reconciliation_violation",
 		"ALTER TABLE cash_ledger DISABLE TRIGGER append_only", "DROP TABLE cash_ledger",
 		"SET session_replication_role = replica", "CREATE TABLE hack (id INT)", "SET ROLE exchange" })
 	@DisplayName("원장, 체결, 감사 로그, 권한은 고칠 수 없다")
