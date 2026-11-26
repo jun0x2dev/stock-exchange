@@ -175,5 +175,10 @@ test('운영 시연 녹화', async ({ page }) => {
   await switchTo('auditor')
   await shot(1200)
   await tap(page.getByRole('button', { name: '지금 검증하기' }), 2800, 1200)
+
+  state.caption = '잔고와 원장이 맞는지 매일 대사합니다'
+  await toTop('대사 결과')
+  await shot(900)
+  await tap(page.getByRole('button', { name: '지금 대사하기' }), 2800, 1200)
   save()
 })

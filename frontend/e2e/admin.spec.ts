@@ -62,6 +62,19 @@ test('운영자가 요청하고 다른 사람인 승인자가 승인하면 고�
   await expect(page.getByText('이상 없음')).toBeVisible()
 })
 
+test('운영자가 지금 대사하면 결과가 이력 맨 위에 남고, 승인자는 실행할 수 없다', async ({ page }) => {
+  await login(page, 'operator')
+  const history = page.getByRole('heading', { name: '대사 결과' }).locator('..')
+  await history.getByRole('button', { name: '지금 대사하기' }).click()
+  await expect(page.getByText('대사 결과 모두 일치해요')).toBeVisible()
+  await expect(history.getByRole('listitem').first()).toContainText(/일치.*수동/)
+  await logout(page)
+
+  await login(page, 'approver')
+  await expect(page.getByRole('heading', { name: '대사 결과' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '지금 대사하기' })).toHaveCount(0)
+})
+
 test('고객은 운영 화면에 들어갈 수 없다', async ({ page }) => {
   await login(page, 'demo')
   await page.goto('/admin')

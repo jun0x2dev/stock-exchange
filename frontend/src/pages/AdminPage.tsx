@@ -2,15 +2,22 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router'
 import { useToast } from '../components/Toast'
-import { api, ApiError, type Adjustment, type AuditVerification, type Deposit, type Role } from '../lib/api'
+import { api, ApiError, type Adjustment, type AuditVerification, type Deposit, type Reconciliation, type Role } from '../lib/api'
 import { moment, num } from '../lib/format'
-import { useAdjustments, useDeposits, useMe } from '../lib/queries'
+import { useAdjustments, useDeposits, useMe, useReconciliation, useReconciliations } from '../lib/queries'
 import styles from './AdminPage.module.css'
 
 const ROLE: Record<Exclude<Role, 'CUSTOMER'>, { label: string; duty: string }> = {
   OPERATOR: { label: '운영자', duty: '잘못된 입금·입고의 정정을 요청해요. 승인은 다른 사람이 해요.' },
   APPROVER: { label: '승인자', duty: '운영자가 요청한 정정을 확인하고 승인하거나 거절해요.' },
   AUDITOR: { label: '감사 담당자', duty: '감사 로그가 기록된 뒤 바뀌거나 지워지지 않았는지 검증해요.' },
+}
+
+/** 대사에서 찾을 수 있는 불일치의 뜻. */
+const VIOLATION: Record<string, string> = {
+  I1: '예약이 보유 범위를 벗어남', I2: '현금 잔고와 원장이 다름', I3: '보유 수량과 원장이 다름',
+  I4: '전표의 합이 0이 아님', I5: '체결 수량이 맞지 않음', I6: '예약금이 미체결 매수와 다름',
+  I7: '예약 수량이 미체결 매도와 다름', AUDIT: '감사 로그 변조',
 }
 
 const STATUS: Record<Adjustment['status'], string> = { REQUESTED: '승인 대기', APPROVED: '승인', REJECTED: '거절' }
@@ -35,6 +42,7 @@ export function AdminPage() {
         <p>{role.duty}</p>
       </section>
       {me.role === 'OPERATOR' && <Deposits />}
+      <Reconciliations canRun={me.role !== 'APPROVER'} />
       {me.role === 'AUDITOR' && <AuditCheck />}
       <Adjustments canDecide={me.role === 'APPROVER'} />
     </main>
@@ -208,6 +216,80 @@ function Adjustments({ canDecide }: { canDecide: boolean }) {
   )
 }
 
+/** 잔고와 원장, 주문과 체결, 감사 로그가 맞는지 확인한 이력. 매일 자동으로 하고, 운영자와 감사 담당자는 지금 할 수 있다. */
+function Reconciliations({ canRun }: { canRun: boolean }) {
+  const runs = useReconciliations()
+  const rows = runs.data?.pages.flatMap((page) => page.items) ?? []
+  const latest = rows[0]
+  const [running, setRunning] = useState(false)
+  const [error, setError] = useState('')
+  const client = useQueryClient()
+  const toast = useToast()
+
+  /** 지금 대사한다. 결과는 이력의 맨 위에 나온다. */
+  async function run() {
+    setRunning(true)
+    setError('')
+    try {
+      const result = await api.reconcile()
+      toast(result.status === 'PASSED' ? '대사 결과 모두 일치해요' : '대사에서 불일치를 찾았어요')
+    } catch (e) {
+      setError(reasonOf(e))
+    } finally {
+      setRunning(false)
+      client.invalidateQueries({ queryKey: ['reconciliations'] })
+    }
+  }
+
+  return (
+    <section className={`panel ${styles.section}`}>
+      <h2>대사 결과</h2>
+      <p className={styles.note}>잔고와 원장, 주문과 체결, 감사 로그가 서로 맞는지 매일 확인해요.</p>
+      {latest?.status === 'FAILED' && (
+        <p className={styles.alert} role="alert">
+          <b>최근 대사에서 불일치를 찾았어요</b>
+          {latest.businessDate} · 불변식 {num(latest.invariantViolations)}건, 감사 로그 {num(latest.auditProblems)}건
+        </p>
+      )}
+      {error && <p className={styles.error} role="alert">{error}</p>}
+      {canRun && <button type="button" className="solid-button" disabled={running} onClick={run}>{running ? '대사하는 중' : '지금 대사하기'}</button>}
+      {rows.length === 0 ? <p className="empty">{runs.isError ? '대사 이력을 불러오지 못했어요.' : '아직 대사한 적이 없어요.'}</p> : (
+        <ul className={styles.rows}>{rows.map((row) => <ReconciliationRow key={row.runId} row={row} />)}</ul>
+      )}
+      {runs.hasNextPage && <button type="button" className="soft-button" disabled={runs.isFetchingNextPage} onClick={() => runs.fetchNextPage()}>더 보기</button>}
+    </section>
+  )
+}
+
+/** 대사 한 번. 불일치가 있으면 펼쳐서 내역을 본다. */
+function ReconciliationRow({ row }: { row: Reconciliation }) {
+  const [open, setOpen] = useState(false)
+  const detail = useReconciliation(row.runId, open)
+  const failed = row.status === 'FAILED'
+  return (
+    <li className={styles.run}>
+      <span className={styles.main}>
+        <b><span className={`${styles.status} ${failed ? styles.FAILED : ''}`}>{failed ? '불일치' : '일치'}</span>{row.businessDate} {row.trigger === 'SCHEDULED' ? '정기' : '수동'}</b>
+        <small>
+          #{row.runId} · {moment(row.finishedAt)} · 감사 로그 {num(row.auditChecked)}건 확인
+          {failed && ` · 불변식 ${num(row.invariantViolations)}건, 감사 로그 ${num(row.auditProblems)}건`}
+        </small>
+        {open && (
+          <ul className={styles.violations}>
+            {detail.data?.violations.map((v, i) => <li key={i}><b>{VIOLATION[v.kind] ?? v.kind}</b> {v.detail}</li>)}
+            {detail.isError && <li>내역을 불러오지 못했어요.</li>}
+          </ul>
+        )}
+      </span>
+      {failed && (
+        <button type="button" className="soft-button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? '접기' : '내역'}
+        </button>
+      )}
+    </li>
+  )
+}
+
 /** 감사 로그 전체를 다시 계산해 기록 당시와 같은지 확인한다. */
 function AuditCheck() {
   const [result, setResult] = useState<AuditVerification | null>(null)
@@ -234,7 +316,10 @@ function AuditCheck() {
       <p className={styles.note}>모든 기록의 해시를 처음부터 다시 계산하고, DB 밖에 남긴 값과 비교해요.</p>
       <div role="status">
         {result && (result.valid ? (
-          <p className={styles.valid}><b>이상 없음</b>기록 {num(result.checked)}건이 기록 당시와 같고, DB 밖에 남긴 값 {num(result.anchors)}개와 일치해요.</p>
+          <p className={styles.valid}>
+            <b>이상 없음</b>기록 {num(result.checked)}건이 기록 당시와 같아요.
+            {result.anchors > 0 ? ` DB 밖에 남긴 값 ${num(result.anchors)}개와도 일치해요.` : ' DB 밖에는 1분마다 남기며 아직 남긴 값이 없어요.'}
+          </p>
         ) : (
           <div className={styles.invalid}>
             <b>변조 흔적 발견</b>

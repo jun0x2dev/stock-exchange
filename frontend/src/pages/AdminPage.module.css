@@ -15,6 +15,12 @@
 .status { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; background: var(--sunken); color: var(--ink-2); }
 .REQUESTED { background: var(--solid); color: var(--on-solid); }
 .REJECTED { color: var(--ink-3); }
+.FAILED { background: var(--ink); color: var(--canvas); }
+.alert { display: flex; flex-direction: column; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--ink); background: var(--sunken); }
+.alert b { font-size: 16px; }
+.run { align-items: flex-start !important; }
+.violations { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--sunken); font-size: 14px; }
+.violations li + li { margin-top: 4px; }
 .note { font-size: 14px; color: var(--ink-3); }
 .valid, .invalid { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--sunken); }
 .valid b, .invalid b { font-size: 16px; }

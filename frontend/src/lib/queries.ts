@@ -72,3 +72,18 @@ export const useAdjustments = () =>
     // 다른 직원의 요청과 결정이 보이도록 다시 읽는다.
     refetchInterval: 5_000,
   })
+
+/** 대사 이력. */
+export const useReconciliations = () =>
+  useInfiniteQuery({
+    queryKey: ['reconciliations'],
+    queryFn: ({ pageParam }) => api.reconciliations(pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (page) => page.nextCursor,
+    // 정기 대사 결과가 들어오면 보이도록 다시 읽는다.
+    refetchInterval: 30_000,
+  })
+
+/** 대사 한 건의 불일치 내역. 펼쳤을 때만 읽는다. */
+export const useReconciliation = (runId: number, enabled: boolean) =>
+  useQuery({ queryKey: ['reconciliation', runId], queryFn: () => api.reconciliation(runId), enabled, staleTime: Infinity })

@@ -34,6 +34,11 @@ export interface Adjustment {
   reason: string; status: AdjustmentStatus; requester: string; decider: string | null; createdAt: string; decidedAt: string | null
 }
 export interface AuditVerification { valid: boolean; checked: number; anchors: number; problems: string[] }
+export interface Reconciliation {
+  runId: number; businessDate: string; trigger: 'SCHEDULED' | 'MANUAL'; status: 'PASSED' | 'FAILED'
+  invariantViolations: number; auditProblems: number; auditChecked: number; startedAt: string; finishedAt: string
+}
+export interface ReconciliationDetail { run: Reconciliation; violations: { kind: string; detail: string }[] }
 export interface Page<T> { items: T[]; nextCursor: number | null }
 export interface PlaceOrder {
   accountId: number; symbol: string; side: Side; orderType: 'LIMIT'; price: number; quantity: number
@@ -116,6 +121,10 @@ export const api = {
     }),
   decideAdjustment: (adjustmentId: number, approve: boolean) =>
     request<Adjustment>(`/admin/adjustments/${adjustmentId}/${approve ? 'approval' : 'rejection'}`, { method: 'POST' }),
+  reconciliations: (cursor: number | null) =>
+    request<Page<Reconciliation>>(`/admin/reconciliations${cursor ? `?cursor=${cursor}` : ''}`),
+  reconciliation: (runId: number) => request<ReconciliationDetail>(`/admin/reconciliations/${runId}`),
+  reconcile: () => request<Reconciliation>('/admin/reconciliations', { method: 'POST' }),
   verifyAudit: () => request<AuditVerification>('/admin/audit/verification'),
   deposit: (key: string, accountId: number, amount: number) =>
     post<{ depositId: number }>(`/accounts/${accountId}/deposits`, key, { amount }),
