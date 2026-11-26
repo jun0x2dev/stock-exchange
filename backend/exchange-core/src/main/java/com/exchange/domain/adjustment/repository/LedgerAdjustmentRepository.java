@@ -14,8 +14,8 @@ import com.exchange.domain.adjustment.entity.LedgerAdjustment;
 /** 원장 정정 요청 저장소. */
 public interface LedgerAdjustmentRepository extends Repository<LedgerAdjustment, Long> {
 
-	/** 정정 요청과 대상 전표. */
-	record Row(LedgerAdjustment adjustment, Deposit deposit) {
+	/** 정정 요청, 대상 전표, 계좌 주인·요청자·결정자의 아이디. 결정 전이면 결정자는 null이다. */
+	record Row(LedgerAdjustment adjustment, Deposit deposit, String owner, String requester, String decider) {
 	}
 
 	/** 같은 전표에 진행 중이거나 승인된 요청이 없을 때만 저장하고 ID를 반환한다. */
@@ -36,15 +36,19 @@ public interface LedgerAdjustmentRepository extends Repository<LedgerAdjustment,
 
 	/** 한 건. */
 	@Query("""
-		SELECT new com.exchange.domain.adjustment.repository.LedgerAdjustmentRepository$Row(a, d)
-		  FROM LedgerAdjustment a JOIN Deposit d ON d.depositId = a.depositId WHERE a.adjustmentId = :adjustmentId
+		SELECT new com.exchange.domain.adjustment.repository.LedgerAdjustmentRepository$Row(a, d, o.loginId, r.loginId, x.loginId)
+		  FROM LedgerAdjustment a JOIN Deposit d ON d.depositId = a.depositId
+		  JOIN Account ac ON ac.accountId = d.accountId JOIN User o ON o.userId = ac.userId
+		  JOIN User r ON r.userId = a.requestedBy LEFT JOIN User x ON x.userId = a.decidedBy WHERE a.adjustmentId = :adjustmentId
 		""")
 	Optional<Row> findRow(long adjustmentId);
 
 	/** 커서보다 오래된 요청을 최신순으로 조회한다. */
 	@Query("""
-		SELECT new com.exchange.domain.adjustment.repository.LedgerAdjustmentRepository$Row(a, d)
+		SELECT new com.exchange.domain.adjustment.repository.LedgerAdjustmentRepository$Row(a, d, o.loginId, r.loginId, x.loginId)
 		  FROM LedgerAdjustment a JOIN Deposit d ON d.depositId = a.depositId
+		  JOIN Account ac ON ac.accountId = d.accountId JOIN User o ON o.userId = ac.userId
+		  JOIN User r ON r.userId = a.requestedBy LEFT JOIN User x ON x.userId = a.decidedBy
 		 WHERE a.adjustmentId < :cursor ORDER BY a.adjustmentId DESC
 		""")
 	List<Row> findRows(long cursor, Limit limit);

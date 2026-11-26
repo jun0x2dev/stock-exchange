@@ -1,5 +1,8 @@
 package com.exchange.domain.account.entity;
 
+import java.time.Instant;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
@@ -24,4 +27,7 @@ public class Deposit {
 	private String idempotencyKey;
 
 	private String requestHash;
+
+	@Column(insertable = false, updatable = false)
+	private Instant createdAt;
 }

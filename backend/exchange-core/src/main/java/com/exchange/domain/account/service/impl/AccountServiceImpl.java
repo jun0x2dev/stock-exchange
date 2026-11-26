@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.exchange.domain.account.dto.AccountResponse;
 import com.exchange.domain.account.dto.DepositRequest;
 import com.exchange.domain.account.dto.DepositResponse;
+import com.exchange.domain.account.dto.DepositSummary;
 import com.exchange.domain.account.dto.PositionResponse;
 import com.exchange.domain.account.dto.StockDepositRequest;
 import com.exchange.domain.account.entity.Deposit;
@@ -30,6 +32,7 @@ import com.exchange.domain.stock.dto.StockResponse;
 import com.exchange.domain.stock.entity.Stock;
 import com.exchange.domain.stock.service.StockService;
 import com.exchange.global.error.ErrorCode;
+import com.exchange.global.response.CursorPage;
 import com.exchange.global.util.RequestHash;
 
 import lombok.RequiredArgsConstructor;
@@ -119,6 +122,12 @@ public class AccountServiceImpl implements AccountService {
 		auditService.recordSuccess("STOCK_DEPOSIT", "deposit=" + depositId);
 		log.info("주식 입고: accountId={}, depositId={}", accountId, depositId);
 		return new DepositResponse(depositId);
+	}
+
+	@Override
+	public CursorPage<DepositSummary> findDeposits(Long cursor, int size) {
+		return CursorPage.of(depositRepository.findSummaries(cursor == null ? Long.MAX_VALUE : cursor, Limit.of(size + 1)),
+			size, DepositSummary::depositId);
 	}
 
 	@Override

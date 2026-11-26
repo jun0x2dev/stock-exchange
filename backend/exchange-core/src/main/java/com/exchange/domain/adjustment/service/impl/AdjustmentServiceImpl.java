@@ -65,25 +65,26 @@ public class AdjustmentServiceImpl implements AdjustmentService {
 	public CursorPage<AdjustmentResponse> find(Long cursor, int size) {
 		List<AdjustmentResponse> rows = adjustmentRepository
 			.findRows(cursor == null ? Long.MAX_VALUE : cursor, Limit.of(size + 1))
-			.stream().map(row -> AdjustmentResponse.of(row.adjustment(), row.deposit())).toList();
+			.stream().map(AdjustmentResponse::from).toList();
 		return CursorPage.of(rows, size, AdjustmentResponse::adjustmentId);
 	}
 
 	// 상태를 바꾼다. 바꾸지 못했으면 이유를 찾아 알린다.
 	private AdjustmentResponse decide(long userId, long adjustmentId, AdjustmentStatus status) {
 		boolean decided = adjustmentRepository.decide(adjustmentId, status.name(), userId) == 1;
-		AdjustmentResponse adjustment = get(adjustmentId);
+		LedgerAdjustmentRepository.Row row = adjustmentRepository.findRow(adjustmentId)
+			.orElseThrow(() -> new AdjustmentException(ErrorCode.ADJUSTMENT_NOT_FOUND));
 		if (decided) {
-			return adjustment;
+			return AdjustmentResponse.from(row);
 		}
-		throw new AdjustmentException(adjustment.requestedBy() == userId
+		throw new AdjustmentException(row.adjustment().getRequestedBy() == userId
 			? ErrorCode.ADJUSTMENT_SELF_DECISION : ErrorCode.ADJUSTMENT_ALREADY_DECIDED);
 	}
 
 	// 한 건을 조회한다.
 	private AdjustmentResponse get(long adjustmentId) {
 		return adjustmentRepository.findRow(adjustmentId)
-			.map(row -> AdjustmentResponse.of(row.adjustment(), row.deposit()))
+			.map(AdjustmentResponse::from)
 			.orElseThrow(() -> new AdjustmentException(ErrorCode.ADJUSTMENT_NOT_FOUND));
 	}
 }

@@ -5,8 +5,10 @@ import java.util.List;
 import com.exchange.domain.account.dto.AccountResponse;
 import com.exchange.domain.account.dto.DepositRequest;
 import com.exchange.domain.account.dto.DepositResponse;
+import com.exchange.domain.account.dto.DepositSummary;
 import com.exchange.domain.account.dto.PositionResponse;
 import com.exchange.domain.account.dto.StockDepositRequest;
+import com.exchange.global.response.CursorPage;
 
 /** 잔고 조회와 모의 입금·입고. */
 public interface AccountService {
@@ -25,6 +27,9 @@ public interface AccountService {
 
 	/** 운영자가 고객 계좌에 모의 주식을 입고한다. */
 	DepositResponse depositStock(long accountId, String idempotencyKey, StockDepositRequest request);
+
+	/** 모든 고객의 입금·입고를 최신순으로 조회한다. 운영자용이다. */
+	CursorPage<DepositSummary> findDeposits(Long cursor, int size);
 
 	/** 입금·입고 기록이 있는지 확인한다. */
 	void requireDeposit(long depositId);

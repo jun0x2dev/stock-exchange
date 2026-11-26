@@ -33,7 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class SecurityConfig {
 
 	/** 화면 파일과 화면 주소. 데이터는 모두 인증이 필요한 API로만 나간다. */
-	static final String[] PAGES = { "/login", "/stocks/{symbol}", "/account" };
+	static final String[] PAGES = { "/login", "/stocks/{symbol}", "/account", "/admin" };
 
 	private static final String CSP = "default-src 'self'; img-src 'self' data:; object-src 'none'; "
 		+ "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
@@ -60,6 +60,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/v1/admin/adjustments").hasRole("OPERATOR")
 				.requestMatchers(HttpMethod.POST, "/api/v1/admin/adjustments/**").hasRole("APPROVER")
 				.requestMatchers(HttpMethod.GET, "/api/v1/admin/adjustments").hasAnyRole("OPERATOR", "APPROVER", "AUDITOR")
+				.requestMatchers(HttpMethod.GET, "/api/v1/admin/deposits").hasRole("OPERATOR")
 				.requestMatchers("/api/v1/admin/**").denyAll()
 				.anyRequest().authenticated())
 			.csrf(csrf -> csrf.spa())

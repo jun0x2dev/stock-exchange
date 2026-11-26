@@ -184,6 +184,12 @@ class AdjustmentTest extends IntegrationTest {
 			perform(post(path + "/rejection"), denied).andExpect(status().isForbidden());
 		}
 		perform(get("/api/v1/admin/adjustments"), customer).andExpect(status().isForbidden());
+		for (MockHttpSession denied : List.of(customer, approverSession, auditor)) {
+			perform(get("/api/v1/admin/deposits"), denied).andExpect(status().isForbidden());
+		}
+		perform(get("/api/v1/admin/deposits?size=1"), operatorSession).andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.items[0].depositId").value(depositId))
+			.andExpect(jsonPath("$.data.items[0].owner").exists());
 		for (MockHttpSession denied : List.of(customer, operatorSession, approverSession)) {
 			perform(get("/api/v1/admin/audit/verification"), denied).andExpect(status().isForbidden());
 		}
@@ -191,7 +197,9 @@ class AdjustmentTest extends IntegrationTest {
 			Integer.class, "POST " + path + "/approval")).isEqualTo(3);
 
 		perform(get("/api/v1/admin/adjustments"), auditor).andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.items[0].adjustmentId").value(id));
+			.andExpect(jsonPath("$.data.items[0].adjustmentId").value(id))
+			.andExpect(jsonPath("$.data.items[0].requester").exists())
+			.andExpect(jsonPath("$.data.items[0].decider").doesNotExist());
 		perform(get("/api/v1/admin/audit/verification"), auditor).andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.valid").value(true));
 		perform(post(path + "/approval"), approverSession).andExpect(status().isOk())
