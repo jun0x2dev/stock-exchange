@@ -64,6 +64,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/v1/admin/reconciliations").hasAnyRole("OPERATOR", "AUDITOR")
 				.requestMatchers(HttpMethod.GET, "/api/v1/admin/reconciliations", "/api/v1/admin/reconciliations/*")
 					.hasAnyRole("OPERATOR", "APPROVER", "AUDITOR")
+				.requestMatchers(HttpMethod.GET, "/api/v1/admin/fds-alerts").hasAnyRole("OPERATOR", "APPROVER", "AUDITOR")
 				.requestMatchers("/api/v1/admin/**").denyAll()
 				.anyRequest().authenticated())
 			.csrf(csrf -> csrf.spa())

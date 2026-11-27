@@ -64,6 +64,16 @@ server:
         same-site: strict
 
 exchange:
+  fds:
+    # 허수성 호가 기준(프로젝트 정책, 거래소 규정 아님). 최근 lookback 동안 취소된 주문 중
+    # 체결이 max-fill-percent% 이하이고, max-lifetime 안에 취소됐고, 그사이 같은 계좌가 반대편에서 체결했으며
+    # 그 수량의 fake-to-real배 이상이고, 들어온 순간 같은 쪽 잔량의 min-depth-share-percent% 이상인 주문을 경보한다.
+    spoofing:
+      lookback-minutes: 10
+      max-lifetime-seconds: 10
+      max-fill-percent: 10
+      fake-to-real: 5
+      min-depth-share-percent: 50
   db:
     # 앱 전용 DB 계정(exchange_app)의 비밀번호.
     app-password: ${EXCHANGE_DB_APP_PASSWORD:}
@@ -75,6 +85,9 @@ exchange:
   bot:
     # 켜면 quote 토픽의 시세를 따라 maker가 호가를 내고 taker가 거래한다. exchange-feed도 함께 띄워야 한다.
     enabled: ${EXCHANGE_BOT_ENABLED:false}
+    spoofer:
+      # 켜면 탐지 실험용 공격자(spoofer)가 허수성 호가와 미끼 주문을 낸다. 호가 봇과 함께 켠다.
+      enabled: ${EXCHANGE_BOT_SPOOFER_ENABLED:false}
   demo:
     # 값이 있을 때만 체험용 사용자와 호가를 만든다. 운영에서는 비워 둔다.
     password: ${EXCHANGE_DEMO_PASSWORD:}

@@ -89,6 +89,8 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EXCHANGE_DEMO_PASSWORD: ${EXCHANGE_DEMO_PASSWORD:-}
       EXCHANGE_BOT_ENABLED: "true"
+      # 탐지 실험용 공격자. .env에서 true로 켠다.
+      EXCHANGE_BOT_SPOOFER_ENABLED: ${EXCHANGE_BOT_SPOOFER_ENABLED:-false}
     ports:
       # 다른 프로그램이 8080을 쓰면 .env의 CORE_PORT로 바꾼다.
       - "127.0.0.1:${CORE_PORT:-8080}:8080"

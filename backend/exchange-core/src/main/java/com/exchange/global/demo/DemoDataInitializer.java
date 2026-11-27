@@ -62,11 +62,12 @@ public class DemoDataInitializer implements ApplicationRunner {
 		Trader demo = trader("demo");
 		Trader maker = trader("maker");
 		Trader taker = trader("taker");
+		Trader spoofer = trader("spoofer");
 		accountService.deposit(demo.userId, demo.accountId, "demo-cash", new DepositRequest(10_000_000L));
 		List<StockResponse> stocks = stockService.findAll();
 		accountService.depositStock(demo.accountId, "demo-stock",
 			new StockDepositRequest(stocks.getFirst().symbol(), 20L));
-		for (Trader trader : List.of(maker, taker)) {
+		for (Trader trader : List.of(maker, taker, spoofer)) {
 			accountService.deposit(trader.userId, trader.accountId, "demo-cash", new DepositRequest(1_000_000_000L));
 			stocks.forEach(stock -> accountService.depositStock(trader.accountId, "demo-" + stock.symbol(),
 				new StockDepositRequest(stock.symbol(), 10_000L)));
