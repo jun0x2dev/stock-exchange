@@ -68,6 +68,7 @@ test('운영자가 지금 대사하면 결과가 이력 맨 위에 남고, 승�
   await history.getByRole('button', { name: '지금 대사하기' }).click()
   await expect(page.getByText('대사 결과 모두 일치해요')).toBeVisible()
   await expect(history.getByRole('listitem').first()).toContainText(/일치.*수동/)
+  await expect(page.getByRole('heading', { name: '이상거래 경보' })).toBeVisible()
   await logout(page)
 
   await login(page, 'approver')

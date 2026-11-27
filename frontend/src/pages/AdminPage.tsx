@@ -2,9 +2,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router'
 import { useToast } from '../components/Toast'
-import { api, ApiError, type Adjustment, type AuditVerification, type Deposit, type Reconciliation, type Role } from '../lib/api'
+import { api, ApiError, type Adjustment, type AuditVerification, type Deposit, type FdsAlert, type Reconciliation, type Role } from '../lib/api'
 import { moment, num } from '../lib/format'
-import { useAdjustments, useDeposits, useMe, useReconciliation, useReconciliations } from '../lib/queries'
+import { useAdjustments, useDeposits, useFdsAlerts, useMe, useReconciliation, useReconciliations } from '../lib/queries'
 import styles from './AdminPage.module.css'
 
 const ROLE: Record<Exclude<Role, 'CUSTOMER'>, { label: string; duty: string }> = {
@@ -19,6 +19,9 @@ const VIOLATION: Record<string, string> = {
   I4: '전표의 합이 0이 아님', I5: '체결 수량이 맞지 않음', I6: '예약금이 미체결 매수와 다름',
   I7: '예약 수량이 미체결 매도와 다름', AUDIT: '감사 로그 변조',
 }
+
+/** 이상거래 탐지 규칙의 이름. */
+const RULE: Record<FdsAlert['rule'], string> = { SPOOFING: '허수성 호가' }
 
 const STATUS: Record<Adjustment['status'], string> = { REQUESTED: '승인 대기', APPROVED: '승인', REJECTED: '거절' }
 
@@ -42,6 +45,7 @@ export function AdminPage() {
         <p>{role.duty}</p>
       </section>
       {me.role === 'OPERATOR' && <Deposits />}
+      <FdsAlerts />
       <Reconciliations canRun={me.role !== 'APPROVER'} />
       {me.role === 'AUDITOR' && <AuditCheck />}
       <Adjustments canDecide={me.role === 'APPROVER'} />
@@ -212,6 +216,32 @@ function Adjustments({ canDecide }: { canDecide: boolean }) {
           </div>
         )}
       </dialog>
+    </section>
+  )
+}
+
+/** 규칙 기반 이상거래 탐지가 남긴 경보. 10초마다 최근 주문과 체결을 훑어 만든다. */
+function FdsAlerts() {
+  const alerts = useFdsAlerts()
+  const rows = alerts.data?.pages.flatMap((page) => page.items) ?? []
+  return (
+    <section className={`panel ${styles.section}`}>
+      <h2>이상거래 경보</h2>
+      <p className={styles.note}>체결할 생각 없이 큰 주문을 냈다가 반대편에서 거래한 뒤 바로 취소한 주문을 찾아요. 기준은 프로젝트 정책이에요.</p>
+      {rows.length === 0 ? <p className="empty">{alerts.isError ? '경보를 불러오지 못했어요.' : '경보가 없어요.'}</p> : (
+        <ul className={styles.rows}>
+          {rows.map((row) => (
+            <li key={row.alertId}>
+              <span className={styles.main}>
+                <b><span className={`${styles.status} ${styles.FAILED}`}>{RULE[row.rule]}</span>{row.owner ?? `계좌 ${row.accountId}`} · {row.symbol}</b>
+                <span className={styles.reason}>{row.evidence}</span>
+                <small>#{row.alertId} · 주문 {row.orderId} · {moment(row.detectedAt)}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {alerts.hasNextPage && <button type="button" className="soft-button" disabled={alerts.isFetchingNextPage} onClick={() => alerts.fetchNextPage()}>더 보기</button>}
     </section>
   )
 }

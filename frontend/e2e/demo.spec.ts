@@ -180,5 +180,13 @@ test('운영 시연 녹화', async ({ page }) => {
   await toTop('대사 결과')
   await shot(900)
   await tap(page.getByRole('button', { name: '지금 대사하기' }), 2800, 1200)
+
+  state.caption = '허수성 호가를 찾아 경보합니다'
+  // 공격자(spoofer)를 켜고 녹화해야 경보가 있다.
+  await expect(page.getByText('허수성 호가').first()).toBeVisible({ timeout: 60_000 })
+  // 앞 장면의 알림이 경보를 가리지 않게 한다.
+  await expect(page.getByText('대사 결과 모두 일치해요')).toHaveCount(0)
+  await toTop('이상거래 경보')
+  await shot(3200)
   save()
 })

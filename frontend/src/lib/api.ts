@@ -39,6 +39,10 @@ export interface Reconciliation {
   invariantViolations: number; auditProblems: number; auditChecked: number; startedAt: string; finishedAt: string
 }
 export interface ReconciliationDetail { run: Reconciliation; violations: { kind: string; detail: string }[] }
+export interface FdsAlert {
+  alertId: number; rule: 'SPOOFING'; accountId: number; owner: string | null; symbol: string | null
+  orderId: number | null; evidence: string; detectedAt: string
+}
 export interface Page<T> { items: T[]; nextCursor: number | null }
 export interface PlaceOrder {
   accountId: number; symbol: string; side: Side; orderType: 'LIMIT'; price: number; quantity: number
@@ -125,6 +129,7 @@ export const api = {
     request<Page<Reconciliation>>(`/admin/reconciliations${cursor ? `?cursor=${cursor}` : ''}`),
   reconciliation: (runId: number) => request<ReconciliationDetail>(`/admin/reconciliations/${runId}`),
   reconcile: () => request<Reconciliation>('/admin/reconciliations', { method: 'POST' }),
+  fdsAlerts: (cursor: number | null) => request<Page<FdsAlert>>(`/admin/fds-alerts${cursor ? `?cursor=${cursor}` : ''}`),
   verifyAudit: () => request<AuditVerification>('/admin/audit/verification'),
   deposit: (key: string, accountId: number, amount: number) =>
     post<{ depositId: number }>(`/accounts/${accountId}/deposits`, key, { amount }),

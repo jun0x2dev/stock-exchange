@@ -87,3 +87,13 @@ export const useReconciliations = () =>
 /** 대사 한 건의 불일치 내역. 펼쳤을 때만 읽는다. */
 export const useReconciliation = (runId: number, enabled: boolean) =>
   useQuery({ queryKey: ['reconciliation', runId], queryFn: () => api.reconciliation(runId), enabled, staleTime: Infinity })
+
+/** 이상거래 경보. 탐지 주기(10초)에 맞춰 다시 읽는다. */
+export const useFdsAlerts = () =>
+  useInfiniteQuery({
+    queryKey: ['fds-alerts'],
+    queryFn: ({ pageParam }) => api.fdsAlerts(pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (page) => page.nextCursor,
+    refetchInterval: 10_000,
+  })
