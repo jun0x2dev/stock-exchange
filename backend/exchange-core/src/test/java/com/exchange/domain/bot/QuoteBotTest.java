@@ -49,6 +49,14 @@ class QuoteBotTest extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("한 번에 내는 호가는 매수를 모두 낸 뒤 매도를 낸다. 체결 반영과 잠금 순서가 같아 교착되지 않는다")
+	void locksAccountBeforePosition() {
+		bot.quote(symbol, 71_000);
+		assertThat(jdbc.queryForList("SELECT side FROM orders WHERE symbol = ? ORDER BY order_id", String.class, symbol))
+			.containsExactly("BUY", "BUY", "BUY", "SELL", "SELL", "SELL");
+	}
+
+	@Test
 	@DisplayName("시세가 그대로면 주문을 새로 내지 않고, 움직이면 바뀐 호가만 바꾼다")
 	void changesOnlyWhatMoved() {
 		bot.quote(symbol, 71_000);

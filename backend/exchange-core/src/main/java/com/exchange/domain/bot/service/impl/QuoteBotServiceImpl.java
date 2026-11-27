@@ -1,6 +1,7 @@
 package com.exchange.domain.bot.service.impl;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -69,7 +70,9 @@ public class QuoteBotServiceImpl implements QuoteBotService {
 			}
 			// 취소 명령이 먼저 커밋되므로 엔진도 먼저 처리한다. 그래서 봇끼리 체결되지 않는다.
 			transaction.executeWithoutResult(status -> cancel(stale));
+			// 매수는 계좌, 매도는 보유 종목 행을 잠근다. 체결 반영과 같은 순서(계좌 → 보유 종목)로 잠그도록 매수를 먼저 낸다.
 			transaction.executeWithoutResult(status -> wanted.stream().filter(level -> !kept.contains(level))
+				.sorted(Comparator.comparing(level -> level.side() == Side.SELL))
 				.forEach(level -> place(maker, symbol, level.side(), level.price(), quantity(level))));
 		});
 	}
